@@ -1,17 +1,83 @@
 {
-  "name": "gtvm/ejercicio-programacion-backend",
-  "description": "Backend API con arquitectura MVC modular para gestion de empleados.",
-  "type": "project",
-  "require": {
-    "php": "^8.2",
-    "ext-pdo": "*"
-  },
-  "autoload": {
-    "psr-4": {
-      "App\\": "src/"
-    }
-  },
-  "scripts": {
-    "serve": "php -S localhost:8000 -t public"
-  }
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "gtvm/ejercicio-programacion-backend",
+    "type": "project",
+    "description": "Backend API en Laravel con arquitectura modular para gestion de empleados.",
+    "keywords": ["laravel", "api", "employees", "modular"],
+    "license": "MIT",
+    "require": {
+        "php": "^8.3",
+        "laravel/framework": "^13.0",
+        "laravel/tinker": "^3.0"
+    },
+    "require-dev": {
+        "fakerphp/faker": "^1.23",
+        "laravel/pail": "^1.2.5",
+        "laravel/pint": "^1.27",
+        "mockery/mockery": "^1.6",
+        "nunomaduro/collision": "^8.6",
+        "phpunit/phpunit": "^12.5.12"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "ensure-runtime-dirs": [
+            "@php -r \"foreach ([\\\"bootstrap/cache\\\",\\\"storage/uploads\\\",\\\"storage/framework/cache/data\\\",\\\"storage/framework/sessions\\\",\\\"storage/framework/testing\\\",\\\"storage/framework/views\\\",\\\"storage/logs\\\"] as \\$dir) { if (!is_dir(\\$dir)) { mkdir(\\$dir, 0777, true); } }\""
+        ],
+        "setup": [
+            "composer install",
+            "@composer ensure-runtime-dirs",
+            "@php -r \"file_exists('.env') || copy('.env.template', '.env');\"",
+            "@php artisan key:generate"
+        ],
+        "serve": "@php artisan serve --host=127.0.0.1 --port=8000",
+        "dev": "@php artisan serve --host=127.0.0.1 --port=8000",
+        "test": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test"
+        ],
+        "pre-autoload-dump": [
+            "@composer ensure-runtime-dirs"
+        ],
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
+        ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        ],
+        "post-root-package-install": [
+            "@composer ensure-runtime-dirs",
+            "@php -r \"file_exists('.env') || copy('.env.template', '.env');\""
+        ],
+        "pre-package-uninstall": [
+            "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": []
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
 }
