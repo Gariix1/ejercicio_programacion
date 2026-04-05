@@ -38,7 +38,7 @@ ejercicio_programacion/
 │   ├── storage/
 │   │   └── uploads/
 │   ├── composer.json
-│   └── .env.example
+│   └── .env.template
 ├── frontend/
 │   ├── src/
 │   │   ├── app/
@@ -201,7 +201,7 @@ Cualquier revisor puede clonar, instalar y ejecutar sin asistencia adicional.
 
 Cuando completemos la implementacion, el flujo de arranque sera este:
 
-1. Copiar `backend/.env.example` como `backend/.env`.
+1. Copiar `backend/.env.template` como `backend/.env`.
 2. Ejecutar `database/schema.sql` y luego `database/seed.sql` en MySQL.
 3. Instalar dependencias del backend con `composer install` dentro de `backend/`.
 4. Instalar dependencias del frontend con `npm install` dentro de `frontend/`.

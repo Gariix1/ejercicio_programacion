@@ -14,6 +14,14 @@ use App\Modules\Reports\Controllers\ReportController;
 use App\Modules\Reports\Repositories\ReportRepository;
 use App\Modules\Reports\Services\ReportService;
 
+$router->get('/api/health', static fn () => App\Core\Http\Response::json([
+    'message' => 'API ready',
+]));
+
+if ($request->path() === '/api/health') {
+    return;
+}
+
 $databaseConfig = require $basePath . '/config/database.php';
 $connection = Connection::getInstance($databaseConfig);
 
@@ -35,10 +43,6 @@ $reportController = new ReportController(
         new ReportRepository($connection)
     )
 );
-
-$router->get('/api/health', static fn () => App\Core\Http\Response::json([
-    'message' => 'API ready',
-]));
 
 $router->get('/api/employees', [$employeeController, 'index']);
 $router->get('/api/employees/{id}', [$employeeController, 'show']);

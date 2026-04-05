@@ -34,6 +34,26 @@ if (file_exists($autoload)) {
 
 Env::load($basePath . '/.env');
 
+$allowedOrigins = [
+    'http://localhost:4200',
+    'http://127.0.0.1:4200',
+];
+
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+
+if (in_array($origin, $allowedOrigins, true)) {
+    header('Access-Control-Allow-Origin: ' . $origin);
+    header('Vary: Origin');
+}
+
+header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
+
 $router = new Router();
 $request = Request::capture();
 
