@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Reports\Repositories;
 
+use App\Modules\Employees\DTOs\EmployeeListFilters;
+use App\Modules\Employees\Enums\EmployeeStatus;
 use App\Modules\Employees\Repositories\EmployeeRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +16,7 @@ final class EmployeeReportRepository
     {
     }
 
-    public function all(array $filters = []): LengthAwarePaginator
+    public function all(EmployeeListFilters $filters): LengthAwarePaginator
     {
         return $this->employeeRepository->all($filters);
     }
@@ -24,8 +26,8 @@ final class EmployeeReportRepository
         $summary = DB::table('empleados')
             ->selectRaw('
                 COUNT(*) AS total_empleados,
-                SUM(CASE WHEN estado_codigo = 1 THEN 1 ELSE 0 END) AS empleados_vigentes,
-                SUM(CASE WHEN estado_codigo = 9 THEN 1 ELSE 0 END) AS empleados_retirados,
+                SUM(CASE WHEN estado_codigo = ' . EmployeeStatus::VIGENTE->value . ' THEN 1 ELSE 0 END) AS empleados_vigentes,
+                SUM(CASE WHEN estado_codigo = ' . EmployeeStatus::RETIRADO->value . ' THEN 1 ELSE 0 END) AS empleados_retirados,
                 AVG(sueldo) AS sueldo_promedio
             ')
             ->first();

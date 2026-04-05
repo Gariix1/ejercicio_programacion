@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Employees\Controllers;
 
 use App\Core\Http\Controllers\ApiController;
+use App\Modules\Employees\DTOs\EmployeeListFilters;
 use App\Modules\Employees\Requests\StoreEmployeeRequest;
 use App\Modules\Employees\Requests\UpdateEmployeeRequest;
 use App\Modules\Employees\Resources\EmployeeResource;
@@ -20,13 +21,9 @@ final class EmployeeController extends ApiController
 
     public function index(Request $request): JsonResponse
     {
-        $employees = $this->service->list([
-            'search' => $request->query('search'),
-            'sort_by' => $request->query('sort_by', 'id'),
-            'sort_dir' => $request->query('sort_dir', 'desc'),
-            'page' => $request->query('page', 1),
-            'per_page' => $request->query('per_page', 15),
-        ]);
+        $employees = $this->service->list(
+            EmployeeListFilters::fromRequest($request)
+        );
 
         return $this->collectionResponse(
             EmployeeResource::collection($employees),

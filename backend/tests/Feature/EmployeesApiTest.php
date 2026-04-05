@@ -2,10 +2,29 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class EmployeesApiTest extends TestCase
 {
+    public function test_it_returns_a_single_employee_by_id(): void
+    {
+        $this->getJson('/api/employees/1')
+            ->assertOk()
+            ->assertJsonPath('data.id', 1)
+            ->assertJsonPath('data.codigo_empleado', 'E0001')
+            ->assertJsonPath('data.provincia_personal_nombre', 'Azuay')
+            ->assertJsonPath('data.provincia_laboral_nombre', 'Pichincha');
+    }
+
+    public function test_it_returns_not_found_for_an_unknown_employee(): void
+    {
+        $this->getJson('/api/employees/999')
+            ->assertNotFound()
+            ->assertJsonPath('code', 'RESOURCE_NOT_FOUND')
+            ->assertJsonPath('errors.resource.0.code', 'EMPLOYEE_NOT_FOUND');
+    }
+
     public function test_it_returns_a_paginated_employee_list(): void
     {
         $this->getJson('/api/employees?page=1&per_page=1')
@@ -15,6 +34,42 @@ class EmployeesApiTest extends TestCase
             ->assertJsonPath('meta.total', 1)
             ->assertJsonPath('meta.module', 'employees')
             ->assertJsonPath('data.0.codigo_empleado', 'E0001');
+    }
+
+    public function test_it_filters_employees_by_search_term(): void
+    {
+        $this->insertEmployee([
+            'id' => 2,
+            'codigo_empleado' => 'E0002',
+            'nombres' => 'Bruno',
+            'apellidos' => 'Mora',
+            'cedula' => '1234567890',
+            'email' => 'bruno@example.com',
+            'cargo' => 'Disenador',
+            'departamento' => 'Marketing',
+        ]);
+
+        $this->getJson('/api/employees?search=Bruno')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.nombres', 'Bruno');
+    }
+
+    public function test_it_sorts_employees_by_name_in_ascending_order(): void
+    {
+        $this->insertEmployee([
+            'id' => 2,
+            'codigo_empleado' => 'E0002',
+            'nombres' => 'Bruno',
+            'apellidos' => 'Mora',
+            'cedula' => '1234567890',
+            'email' => 'bruno@example.com',
+        ]);
+
+        $this->getJson('/api/employees?sort_by=nombres&sort_dir=asc&per_page=10')
+            ->assertOk()
+            ->assertJsonPath('data.0.nombres', 'Ana')
+            ->assertJsonPath('data.1.nombres', 'Bruno');
     }
 
     public function test_it_rejects_an_incoherent_employee_state(): void
@@ -29,7 +84,46 @@ class EmployeesApiTest extends TestCase
 
         $this->postJson('/api/employees', $payload)
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['estado_codigo']);
+            ->assertJsonPath('code', 'VALIDATION_ERROR')
+            ->assertJsonPath('errors.estado_codigo.0.code', 'VALIDATION_ESTADO_CODIGO_INVALID')
+            ->assertJsonPath('errors.estado_codigo.0.message', 'El estado codigo y el estado nombre deben ser coherentes entre si.');
+    }
+
+    public function test_it_rejects_duplicate_employee_identity_fields(): void
+    {
+        $payload = $this->validPayload([
+            'codigo_empleado' => 'E0001',
+            'cedula' => '0123456789',
+            'email' => 'duplicado@example.com',
+        ]);
+
+        $this->postJson('/api/employees', $payload)
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'VALIDATION_ERROR')
+            ->assertJsonPath('errors.codigo_empleado.0.code', 'VALIDATION_CODIGO_EMPLEADO_UNIQUE')
+            ->assertJsonPath('errors.cedula.0.code', 'VALIDATION_CEDULA_UNIQUE');
+    }
+
+    public function test_it_returns_translated_validation_errors_for_invalid_payloads(): void
+    {
+        $payload = $this->validPayload([
+            'codigo_empleado' => 'AB-1',
+            'cedula' => 'ABC',
+            'telefono' => '12A',
+            'fecha_nacimiento' => now()->addDay()->toDateString(),
+            'fecha_ingreso' => '1990-01-01',
+            'sueldo' => 0,
+        ]);
+
+        $this->postJson('/api/employees', $payload)
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'VALIDATION_ERROR')
+            ->assertJsonPath('errors.codigo_empleado.0.code', 'VALIDATION_CODIGO_EMPLEADO_SIZE')
+            ->assertJsonPath('errors.cedula.0.code', 'VALIDATION_CEDULA_DIGITS')
+            ->assertJsonPath('errors.telefono.0.code', 'VALIDATION_TELEFONO_DIGITS_BETWEEN')
+            ->assertJsonPath('errors.fecha_nacimiento.0.code', 'VALIDATION_FECHA_NACIMIENTO_BEFORE')
+            ->assertJsonPath('errors.fecha_ingreso.0.code', 'VALIDATION_FECHA_INGRESO_AFTER')
+            ->assertJsonPath('errors.sueldo.0.code', 'VALIDATION_SUELDO_GT');
     }
 
     public function test_it_creates_an_employee(): void
@@ -95,5 +189,34 @@ class EmployeesApiTest extends TestCase
             'estado_codigo' => 1,
             'estado_nombre' => 'VIGENTE',
         ], $overrides);
+    }
+
+    private function insertEmployee(array $overrides = []): void
+    {
+        DB::table('empleados')->insert(array_replace([
+            'id' => 2,
+            'codigo_empleado' => 'E0002',
+            'nombres' => 'Bruno',
+            'apellidos' => 'Mora',
+            'cedula' => '1234567890',
+            'telefono' => '0988887777',
+            'direccion' => 'Calle Secundaria 456',
+            'fecha_nacimiento' => '1992-02-02',
+            'email' => 'bruno@example.com',
+            'fotografia' => 'empleados/bruno.jpg',
+            'observaciones_personales' => 'Segundo empleado',
+            'fecha_ingreso' => '2024-06-15',
+            'cargo' => 'Analista',
+            'departamento' => 'Operaciones',
+            'sueldo' => 980.00,
+            'jornada_parcial' => false,
+            'observaciones_laborales' => 'Sin novedades',
+            'provincia_personal_id' => 2,
+            'provincia_laboral_id' => 1,
+            'estado_codigo' => 1,
+            'estado_nombre' => 'VIGENTE',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], $overrides));
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Employees\Repositories;
 
 use App\Modules\Employees\DTOs\EmployeeData;
+use App\Modules\Employees\DTOs\EmployeeListFilters;
 use App\Modules\Employees\Models\Employee;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -13,20 +14,20 @@ use Illuminate\Support\Facades\DB;
 
 final class EmployeeRepository
 {
-    public function all(array $filters = []): LengthAwarePaginator
+    public function all(EmployeeListFilters $filters): LengthAwarePaginator
     {
-        $query = $this->applySearch($this->baseQuery(), $filters['search'] ?? null);
+        $query = $this->applySearch($this->baseQuery(), $filters->search);
         $query = $this->applySorting(
             $query,
-            $filters['sort_by'] ?? 'id',
-            $filters['sort_dir'] ?? 'desc'
+            $filters->sortBy,
+            $filters->sortDir
         );
 
         return $query->paginate(
-            $this->resolvePerPage($filters['per_page'] ?? 15),
+            $filters->perPage,
             ['*'],
             'page',
-            $this->resolvePage($filters['page'] ?? 1)
+            $filters->page
         );
     }
 
@@ -144,23 +145,5 @@ final class EmployeeRepository
         $direction = strtolower($sortDirection) === 'asc' ? 'asc' : 'desc';
 
         return $query->orderBy($column, $direction);
-    }
-
-    private function resolvePerPage(mixed $perPage): int
-    {
-        $resolved = (int) $perPage;
-
-        if ($resolved < 1) {
-            return 15;
-        }
-
-        return min($resolved, 100);
-    }
-
-    private function resolvePage(mixed $page): int
-    {
-        $resolved = (int) $page;
-
-        return $resolved > 0 ? $resolved : 1;
     }
 }

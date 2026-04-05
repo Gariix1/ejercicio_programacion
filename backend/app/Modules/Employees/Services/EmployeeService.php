@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Employees\Services;
 
 use App\Modules\Employees\DTOs\EmployeeData;
+use App\Modules\Employees\DTOs\EmployeeListFilters;
 use App\Modules\Employees\Repositories\EmployeeRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -14,7 +15,7 @@ final class EmployeeService
     {
     }
 
-    public function list(array $filters = []): LengthAwarePaginator
+    public function list(EmployeeListFilters $filters): LengthAwarePaginator
     {
         return $this->repository->all($filters);
     }
