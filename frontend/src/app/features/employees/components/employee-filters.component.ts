@@ -1,5 +1,7 @@
-import { Component, input, output } from '@angular/core';
+import { Component, DestroyRef, inject, input, output } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { debounceTime, distinctUntilChanged, map, Subject } from 'rxjs';
 
 export interface EmployeeFiltersValue {
   nombre: string;
@@ -13,30 +15,28 @@ export interface EmployeeFiltersValue {
   template: `
     <section class="filters-card">
       <div class="row g-3 align-items-end">
-        <div class="col-md-5">
+        <div class="col-md-6">
           <label class="form-label">Nombre</label>
           <input
             class="form-control"
             type="search"
             [(ngModel)]="draft.nombre"
+            (ngModelChange)="onTextChange()"
             placeholder="Buscar por nombre o apellido"
           />
         </div>
 
-        <div class="col-md-5">
+        <div class="col-md-6">
           <label class="form-label">Codigo empleado</label>
           <input
             class="form-control"
             type="search"
             [(ngModel)]="draft.codigo"
-            placeholder="Ej. E0001"
+            (ngModelChange)="onTextChange()"
+            placeholder="Buscar por codigo"
+            inputmode="numeric"
+            autocomplete="off"
           />
-        </div>
-
-        <div class="col-md-2 d-grid">
-          <button class="btn btn-info text-white" type="button" (click)="apply()">
-            Buscar
-          </button>
         </div>
       </div>
     </section>
@@ -51,16 +51,33 @@ export interface EmployeeFiltersValue {
   `],
 })
 export class EmployeeFiltersComponent {
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly textChanges = new Subject<EmployeeFiltersValue>();
+
   readonly value = input<EmployeeFiltersValue>({ nombre: '', codigo: '' });
   readonly filtersChange = output<EmployeeFiltersValue>();
 
   protected draft: EmployeeFiltersValue = { nombre: '', codigo: '' };
 
+  constructor() {
+    this.textChanges
+      .pipe(
+        debounceTime(300),
+        map((value) => JSON.stringify(value)),
+        distinctUntilChanged(),
+        map((value) => JSON.parse(value) as EmployeeFiltersValue),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((value) => {
+        this.filtersChange.emit(value);
+      });
+  }
+
   ngOnChanges(): void {
     this.draft = { ...this.value() };
   }
 
-  protected apply(): void {
-    this.filtersChange.emit({ ...this.draft });
+  protected onTextChange(): void {
+    this.textChanges.next({ ...this.draft });
   }
 }

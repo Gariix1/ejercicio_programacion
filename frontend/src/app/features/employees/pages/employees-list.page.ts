@@ -2,7 +2,9 @@ import { AsyncPipe, NgIf } from '@angular/common';
 import { Component } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { BehaviorSubject, switchMap } from 'rxjs';
+import { ActionBarComponent } from '../../../shared/action-bar.component';
 import { ModuleHeaderComponent } from '../../../shared/module-header.component';
+import { PaginationControlsComponent } from '../../../shared/pagination-controls.component';
 import { EmployeesApiService } from '../data-access/employees-api.service';
 import { EmployeeFiltersComponent, EmployeeFiltersValue } from '../components/employee-filters.component';
 import { EmployeeTableComponent } from '../components/employee-table.component';
@@ -15,7 +17,9 @@ import { Employee, EmployeeListQuery } from '../models/employee.model';
     AsyncPipe,
     NgIf,
     RouterLink,
+    ActionBarComponent,
     ModuleHeaderComponent,
+    PaginationControlsComponent,
     EmployeeFiltersComponent,
     EmployeeTableComponent,
   ],
@@ -44,33 +48,23 @@ import { Employee, EmployeeListQuery } from '../models/employee.model';
           (edit)="openEdit($event)"
         ></app-employee-table>
 
-        <section class="actions mt-3">
+        <app-action-bar class="mt-3">
           <a class="btn btn-success" routerLink="/employees/new">Nuevo empleado</a>
           <a class="btn btn-warning text-white" routerLink="/reports">Ver reporte</a>
           <button class="btn btn-outline-secondary" type="button" (click)="clearFilters()">
             Limpiar filtros
           </button>
-        </section>
+        </app-action-bar>
 
-        <section class="pager mt-3" *ngIf="result.pagination && result.pagination.last_page > 1">
-          <button
-            class="btn btn-outline-secondary"
-            type="button"
-            [disabled]="!result.links.prev"
-            (click)="goToPreviousPage()"
-          >
-            Anterior
-          </button>
-
-          <button
-            class="btn btn-outline-primary"
-            type="button"
-            [disabled]="!result.links.next"
-            (click)="goToNextPage()"
-          >
-            Siguiente
-          </button>
-        </section>
+        <app-pagination-controls
+          class="mt-3"
+          *ngIf="result.pagination && result.pagination.last_page > 1"
+          [disablePrevious]="!result.links.prev"
+          [disableNext]="!result.links.next"
+          [showStatus]="false"
+          (previous)="goToPreviousPage()"
+          (next)="goToNextPage()"
+        ></app-pagination-controls>
       </ng-container>
     </section>
   `,
@@ -80,14 +74,6 @@ import { Employee, EmployeeListQuery } from '../models/employee.model';
       margin: 0 auto;
       display: grid;
       gap: 16px;
-    }
-
-    .actions,
-    .pager {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 12px;
     }
   `],
 })

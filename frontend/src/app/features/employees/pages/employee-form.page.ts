@@ -4,6 +4,7 @@ import { Component } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, combineLatest, map, of, shareReplay, switchMap, tap } from 'rxjs';
+import { ActionBarComponent } from '../../../shared/action-bar.component';
 import { ProvincesApiService } from '../../provinces/data-access/provinces-api.service';
 import { EmployeesApiService } from '../data-access/employees-api.service';
 import {
@@ -29,6 +30,7 @@ import { EmployeePersonalFormComponent } from '../components/employee-personal-f
     NgIf,
     ReactiveFormsModule,
     RouterLink,
+    ActionBarComponent,
     EmployeeFormShellComponent,
     EmployeePersonalFormComponent,
     EmployeeLaborFormComponent,
@@ -65,7 +67,7 @@ import { EmployeePersonalFormComponent } from '../components/employee-personal-f
             ></app-employee-labor-form>
           </form>
 
-          <div form-actions class="d-flex flex-wrap justify-content-center gap-3">
+          <app-action-bar form-actions>
             <button
               class="btn btn-success"
               type="button"
@@ -93,7 +95,7 @@ import { EmployeePersonalFormComponent } from '../components/employee-personal-f
             <a class="btn btn-outline-secondary" routerLink="/employees">
               {{ vm.mode === 'create' ? 'Cancelar' : 'Volver al listado' }}
             </a>
-          </div>
+          </app-action-bar>
         </app-employee-form-shell>
       </ng-container>
     </section>

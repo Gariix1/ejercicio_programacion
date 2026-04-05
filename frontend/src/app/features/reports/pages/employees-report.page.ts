@@ -2,7 +2,9 @@ import { AsyncPipe, NgFor, NgIf } from '@angular/common';
 import { Component } from '@angular/core';
 import { combineLatest, map, switchMap } from 'rxjs';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActionBarComponent } from '../../../shared/action-bar.component';
 import { ModuleHeaderComponent } from '../../../shared/module-header.component';
+import { PaginationControlsComponent } from '../../../shared/pagination-controls.component';
 import { EmployeeSortField } from '../../employees/models/employee.model';
 import { ReportsApiService } from '../data-access/reports-api.service';
 import { ReportFiltersComponent, ReportFiltersValue } from '../components/report-filters.component';
@@ -16,7 +18,9 @@ import { ReportTableComponent } from '../components/report-table.component';
     NgFor,
     NgIf,
     RouterLink,
+    ActionBarComponent,
     ModuleHeaderComponent,
+    PaginationControlsComponent,
     ReportFiltersComponent,
     ReportTableComponent,
   ],
@@ -54,33 +58,18 @@ import { ReportTableComponent } from '../components/report-table.component';
           (sortChange)="onSortChange($event)"
         ></app-report-table>
 
-        <section class="pager" *ngIf="vm.report.pagination && vm.report.pagination.last_page > 1">
-          <button
-            class="btn btn-outline-secondary"
-            type="button"
-            [disabled]="!vm.report.links.prev"
-            (click)="goToPage(vm.report.pagination.current_page - 1)"
-          >
-            Anterior
-          </button>
+        <app-pagination-controls
+          *ngIf="vm.report.pagination && vm.report.pagination.last_page > 1"
+          [disablePrevious]="!vm.report.links.prev"
+          [disableNext]="!vm.report.links.next"
+          [statusText]="'Pagina ' + vm.report.pagination.current_page + ' de ' + vm.report.pagination.last_page"
+          (previous)="goToPage(vm.report.pagination.current_page - 1)"
+          (next)="goToPage(vm.report.pagination.current_page + 1)"
+        ></app-pagination-controls>
 
-          <span class="pager-status">
-            Pagina {{ vm.report.pagination.current_page }} de {{ vm.report.pagination.last_page }}
-          </span>
-
-          <button
-            class="btn btn-outline-primary"
-            type="button"
-            [disabled]="!vm.report.links.next"
-            (click)="goToPage(vm.report.pagination.current_page + 1)"
-          >
-            Siguiente
-          </button>
-        </section>
-
-        <section class="actions mt-3">
+        <app-action-bar class="mt-3">
           <a class="btn btn-outline-secondary" routerLink="/employees">Volver al modulo</a>
-        </section>
+        </app-action-bar>
       </ng-container>
     </section>
   `,
@@ -126,13 +115,7 @@ import { ReportTableComponent } from '../components/report-table.component';
       font-size: 0.95rem;
     }
 
-    .actions {
-      display: flex;
-      justify-content: center;
-    }
-
-    .active-filters,
-    .pager {
+    .active-filters {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -151,11 +134,6 @@ import { ReportTableComponent } from '../components/report-table.component';
       background: rgba(197, 228, 247, 0.75);
       color: #255c80;
       font-size: 0.85rem;
-    }
-
-    .pager-status {
-      color: var(--muted);
-      font-size: 0.9rem;
     }
   `],
 })
