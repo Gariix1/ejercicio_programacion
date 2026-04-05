@@ -26,6 +26,11 @@ import { Employee, EmployeeListQuery } from '../models/employee.model';
         sectionTitle=""
       ></app-module-header>
 
+      <div class="alert alert-success alert-dismissible fade show mb-0" role="alert" *ngIf="flashMessage">
+        {{ flashMessage }}
+        <button type="button" class="btn-close" aria-label="Close" (click)="flashMessage = null"></button>
+      </div>
+
       <ng-container *ngIf="result$ | async as result">
         <app-employee-filters
           class="mt-3"
@@ -40,9 +45,11 @@ import { Employee, EmployeeListQuery } from '../models/employee.model';
         ></app-employee-table>
 
         <section class="actions mt-3">
-          <a class="btn btn-success" routerLink="/employees/new">Crear</a>
-          <a class="btn btn-warning text-white" routerLink="/reports">Reporte</a>
-          <button class="btn btn-danger" type="button" (click)="exitModule()">Salir</button>
+          <a class="btn btn-success" routerLink="/employees/new">Nuevo empleado</a>
+          <a class="btn btn-warning text-white" routerLink="/reports">Ver reporte</a>
+          <button class="btn btn-outline-secondary" type="button" (click)="clearFilters()">
+            Limpiar filtros
+          </button>
         </section>
 
         <section class="pager mt-3" *ngIf="result.pagination && result.pagination.last_page > 1">
@@ -85,6 +92,7 @@ import { Employee, EmployeeListQuery } from '../models/employee.model';
   `],
 })
 export class EmployeesListPageComponent {
+  protected flashMessage: string | null = history.state?.flashMessage ?? null;
   protected filters: EmployeeFiltersValue = {
     nombre: '',
     codigo: '',
@@ -133,7 +141,7 @@ export class EmployeesListPageComponent {
     this.router.navigate(['/employees', employee.id, 'edit']);
   }
 
-  protected exitModule(): void {
+  protected clearFilters(): void {
     this.filters = { nombre: '', codigo: '' };
     this.updateQuery({ search: '', page: 1 });
   }

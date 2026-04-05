@@ -15,6 +15,7 @@ import { Employee, EmployeeListResult } from '../models/employee.model';
               <th>Nombre</th>
               <th>Codigo</th>
               <th>Estado</th>
+              <th class="text-end">Accion</th>
             </tr>
           </thead>
 
@@ -22,17 +23,26 @@ import { Employee, EmployeeListResult } from '../models/employee.model';
             <tr
               *ngFor="let employee of result().items"
               class="table-row"
-              (click)="edit.emit(employee)"
+              [attr.aria-label]="'Editar empleado ' + employee.nombres + ' ' + employee.apellidos"
             >
               <td>
                 <strong>{{ employee.nombres }} {{ employee.apellidos }}</strong>
               </td>
               <td>{{ employee.codigo_empleado }}</td>
               <td>{{ employee.estado_nombre }}</td>
+              <td class="text-end">
+                <button
+                  class="btn btn-sm btn-outline-primary edit-button"
+                  type="button"
+                  (click)="edit.emit(employee)"
+                >
+                  Editar
+                </button>
+              </td>
             </tr>
 
             <tr *ngIf="result().items.length === 0">
-              <td class="text-center text-muted py-4" colspan="3">
+              <td class="text-center text-muted py-4" colspan="4">
                 No se encontraron empleados con los filtros actuales.
               </td>
             </tr>
@@ -45,7 +55,7 @@ import { Employee, EmployeeListResult } from '../models/employee.model';
           Total: {{ result().pagination?.total ?? result().items.length }}
           · Pagina {{ result().pagination?.current_page ?? 1 }}
           de {{ result().pagination?.last_page ?? 1 }}
-          · Selecciona una fila para editar
+          · Usa el boton editar para abrir la ficha del empleado
         </small>
       </div>
     </section>
@@ -74,12 +84,15 @@ import { Employee, EmployeeListResult } from '../models/employee.model';
     }
 
     .table-row {
-      cursor: pointer;
       transition: background-color 0.18s ease;
     }
 
     .table-row:hover {
       background: rgba(247, 198, 161, 0.3);
+    }
+
+    .edit-button {
+      min-width: 84px;
     }
 
     .footer-note {
