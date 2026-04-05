@@ -47,7 +47,7 @@ ejercicio_programacion/
 │   ├── tests/
 │   ├── artisan
 │   ├── composer.json
-│   └── .env.template
+│   └── .env.example
 ├── frontend/
 │   ├── src/
 │   │   ├── app/
@@ -84,9 +84,22 @@ Endpoints disponibles:
 - `GET /api/employees/{id}`
 - `POST /api/employees`
 - `PUT /api/employees/{id}`
+- `PATCH /api/employees/{id}`
 - `GET /api/provinces`
 - `GET /api/reports/employees`
 - `GET /api/reports/summary`
+
+Contrato general de la API:
+
+- respuestas exitosas con `data`, `meta` y `links`
+- recursos expuestos con `type`, `id`, `attributes` y `relationships` cuando aplica
+- errores expuestos en `errors[]` con `status`, `code`, `title`, `detail` y `source`
+
+Parametros principales:
+
+- `GET /api/employees` y `GET /api/reports/employees` aceptan `search`, `sort_by`, `sort_dir`, `page` y `per_page`
+- `PUT /api/employees/{id}` actualiza el recurso completo
+- `PATCH /api/employees/{id}` actualiza parcialmente un empleado sin perder validacion de negocio
 
 ## Base de datos
 
@@ -118,7 +131,7 @@ mysql -uroot -proot < database/seed.sql
 
 ```bash
 cd backend
-cp .env.template .env
+cp .env.example .env
 composer install
 composer run serve
 ```
@@ -126,7 +139,7 @@ composer run serve
 Backend disponible en:
 
 - `http://127.0.0.1:8000`
-- `GET /api/employees` y `GET /api/reports/employees` aceptan `page` y `per_page`
+- `GET /api/employees` y `GET /api/reports/employees` aceptan `search`, `sort_by`, `sort_dir`, `page` y `per_page`
 
 ### 3. Frontend
 
@@ -139,6 +152,67 @@ npm start
 Frontend disponible en:
 
 - `http://localhost:4200`
+
+## Ejemplos de API
+
+Detalle de empleado:
+
+```json
+{
+  "data": {
+    "type": "employees",
+    "id": "1",
+    "attributes": {
+      "codigo_empleado": "E0001",
+      "nombres": "Ana",
+      "apellidos": "Perez"
+    },
+    "relationships": {
+      "provincia_personal": {
+        "data": {
+          "type": "provinces",
+          "id": "1"
+        },
+        "meta": {
+          "nombre": "Azuay"
+        }
+      }
+    },
+    "links": {
+      "self": "http://127.0.0.1:8000/api/employees/1"
+    }
+  },
+  "meta": {
+    "module": "employees"
+  },
+  "links": {
+    "self": "http://127.0.0.1:8000/api/employees/1"
+  }
+}
+```
+
+Error de validacion:
+
+```json
+{
+  "errors": [
+    {
+      "status": 422,
+      "code": "VALIDATION_CEDULA_DIGITS",
+      "title": "Error de validacion",
+      "detail": "La cedula debe tener exactamente 10 digitos.",
+      "source": {
+        "field": "cedula"
+      }
+    }
+  ],
+  "meta": {
+    "request_status": "failed",
+    "error_type": "VALIDATION_ERROR",
+    "error_count": 1
+  }
+}
+```
 
 ## Siguiente bloque recomendado
 

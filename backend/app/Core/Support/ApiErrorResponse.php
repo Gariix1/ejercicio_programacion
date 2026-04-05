@@ -19,22 +19,29 @@ final class ApiErrorResponse
 
         foreach ($messages as $attribute => $attributeMessages) {
             $attributeRules = array_keys($failedRules[$attribute] ?? []);
-            $errors[$attribute] = [];
 
             foreach (array_values($attributeMessages) as $index => $message) {
                 $rule = $attributeRules[$index] ?? null;
 
-                $errors[$attribute][] = [
+                $errors[] = [
+                    'status' => $exception->status,
                     'code' => self::validationCode($attribute, $rule),
-                    'message' => $message,
+                    'title' => 'Error de validacion',
+                    'detail' => $message,
+                    'source' => [
+                        'field' => $attribute,
+                    ],
                 ];
             }
         }
 
         return [
-            'message' => 'La solicitud contiene errores de validacion.',
-            'code' => ApiErrorCode::VALIDATION_ERROR,
             'errors' => $errors,
+            'meta' => [
+                'request_status' => 'failed',
+                'error_type' => ApiErrorCode::VALIDATION_ERROR,
+                'error_count' => count($errors),
+            ],
         ];
     }
 
@@ -43,13 +50,19 @@ final class ApiErrorResponse
         $model = class_basename($exception->getModel());
 
         return [
-            'message' => 'No se encontro el recurso solicitado.',
-            'code' => ApiErrorCode::RESOURCE_NOT_FOUND,
-            'errors' => [
-                'resource' => [[
+            'errors' => [[
+                    'status' => 404,
                     'code' => ApiErrorCode::modelNotFound($model),
-                    'message' => 'El recurso solicitado no existe.',
+                    'title' => 'Recurso no encontrado',
+                    'detail' => 'El recurso solicitado no existe.',
+                    'source' => [
+                        'resource' => strtolower($model),
+                    ],
                 ]],
+            'meta' => [
+                'request_status' => 'failed',
+                'error_type' => ApiErrorCode::RESOURCE_NOT_FOUND,
+                'error_count' => 1,
             ],
         ];
     }
@@ -63,13 +76,19 @@ final class ApiErrorResponse
         }
 
         return [
-            'message' => 'No se encontro el recurso solicitado.',
-            'code' => ApiErrorCode::RESOURCE_NOT_FOUND,
-            'errors' => [
-                'resource' => [[
+            'errors' => [[
+                    'status' => 404,
                     'code' => ApiErrorCode::RESOURCE_NOT_FOUND,
-                    'message' => 'El recurso solicitado no existe.',
+                    'title' => 'Recurso no encontrado',
+                    'detail' => 'El recurso solicitado no existe.',
+                    'source' => [
+                        'resource' => 'route',
+                    ],
                 ]],
+            'meta' => [
+                'request_status' => 'failed',
+                'error_type' => ApiErrorCode::RESOURCE_NOT_FOUND,
+                'error_count' => 1,
             ],
         ];
     }

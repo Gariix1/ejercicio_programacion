@@ -23,17 +23,24 @@ final class EmployeeReportController extends ApiController
             EmployeeListFilters::fromRequest($request)
         );
 
-        return $this->collectionResponse(
-            EmployeeResource::collection($report),
-            ['meta' => ['module' => 'reports', 'type' => 'employees']]
+        return $this->paginatedResponse(
+            $report,
+            EmployeeResource::class,
+            ['module' => 'reports', 'type' => 'employees']
         );
     }
 
-    public function summary(): JsonResponse
+    public function summary(Request $request): JsonResponse
     {
-        return $this->arrayResponse([
-            'data' => $this->service->summary(),
-            'meta' => ['module' => 'reports', 'type' => 'summary'],
-        ]);
+        return $this->documentResponse(
+            [
+                'type' => 'employee-report-summary',
+                'id' => 'employees',
+                'attributes' => $this->service->summary(),
+            ],
+            200,
+            ['module' => 'reports', 'type' => 'summary'],
+            ['self' => $request->fullUrl()]
+        );
     }
 }

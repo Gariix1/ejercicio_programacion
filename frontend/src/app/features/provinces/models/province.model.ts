@@ -8,4 +8,6 @@ export interface Province {
   latitud: number | null;
   longitud: number | null;
   id_region: number | null;
+  created_at: string | null;
+  updated_at: string | null;
 }

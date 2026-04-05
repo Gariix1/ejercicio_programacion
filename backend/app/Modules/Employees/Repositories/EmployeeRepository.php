@@ -6,10 +6,12 @@ namespace App\Modules\Employees\Repositories;
 
 use App\Modules\Employees\DTOs\EmployeeData;
 use App\Modules\Employees\DTOs\EmployeeListFilters;
+use App\Modules\Employees\DTOs\EmployeeView;
 use App\Modules\Employees\Models\Employee;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 final class EmployeeRepository
@@ -23,15 +25,21 @@ final class EmployeeRepository
             $filters->sortDir
         );
 
-        return $query->paginate(
+        $result = $query->paginate(
             $filters->perPage,
             ['*'],
             'page',
             $filters->page
         );
+
+        $result->setCollection(
+            $this->mapViews($result->getCollection())
+        );
+
+        return $result;
     }
 
-    public function findDetailsOrFail(int $id): object
+    public function findDetailsOrFail(int $id): EmployeeView
     {
         $employee = $this->baseQuery()
             ->where('e.id', $id)
@@ -44,7 +52,7 @@ final class EmployeeRepository
             throw $exception;
         }
 
-        return $employee;
+        return EmployeeView::fromRow($employee);
     }
 
     public function create(EmployeeData $employeeData): Employee
@@ -63,6 +71,11 @@ final class EmployeeRepository
     public function getModelOrFail(int $id): Employee
     {
         return Employee::query()->findOrFail($id);
+    }
+
+    public function delete(Employee $employee): void
+    {
+        $employee->delete();
     }
 
     private function baseQuery(): Builder
@@ -145,5 +158,12 @@ final class EmployeeRepository
         $direction = strtolower($sortDirection) === 'asc' ? 'asc' : 'desc';
 
         return $query->orderBy($column, $direction);
+    }
+
+    private function mapViews(Collection $rows): Collection
+    {
+        return $rows->map(
+            static fn (object $row): EmployeeView => EmployeeView::fromRow($row)
+        );
     }
 }

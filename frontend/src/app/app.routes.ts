@@ -11,4 +11,9 @@ export const routes: Routes = [
     loadChildren: () =>
       import('./features/employees/employees.routes').then((module) => module.EMPLOYEES_ROUTES),
   },
+  {
+    path: 'reports',
+    loadChildren: () =>
+      import('./features/reports/reports.routes').then((module) => module.REPORTS_ROUTES),
+  },
 ];

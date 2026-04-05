@@ -6,6 +6,7 @@ namespace App\Modules\Employees\Controllers;
 
 use App\Core\Http\Controllers\ApiController;
 use App\Modules\Employees\DTOs\EmployeeListFilters;
+use App\Modules\Employees\Requests\PatchEmployeeRequest;
 use App\Modules\Employees\Requests\StoreEmployeeRequest;
 use App\Modules\Employees\Requests\UpdateEmployeeRequest;
 use App\Modules\Employees\Resources\EmployeeResource;
@@ -25,34 +26,80 @@ final class EmployeeController extends ApiController
             EmployeeListFilters::fromRequest($request)
         );
 
-        return $this->collectionResponse(
-            EmployeeResource::collection($employees),
-            ['meta' => ['module' => 'employees']]
+        return $this->paginatedResponse(
+            $employees,
+            EmployeeResource::class,
+            ['module' => 'employees']
         );
     }
 
     public function show(int $id): JsonResponse
     {
         return $this->itemResponse(
-            new EmployeeResource($this->service->findOrFail($id))
+            new EmployeeResource($this->service->findOrFail($id)),
+            200,
+            ['module' => 'employees'],
+            ['self' => url('/api/employees/' . $id)]
         );
     }
 
     public function store(StoreEmployeeRequest $request): JsonResponse
     {
+        $employee = $this->service->create($request->validated());
+
         return $this->itemResponse(
-            new EmployeeResource($this->service->create($request->validated())),
+            new EmployeeResource($employee),
             201,
-            ['message' => 'Empleado creado correctamente.']
+            [
+                'module' => 'employees',
+                'message' => 'Empleado creado correctamente.',
+            ],
+            ['self' => url('/api/employees/' . $employee->id)]
         );
     }
 
     public function update(UpdateEmployeeRequest $request, int $id): JsonResponse
     {
+        $employee = $this->service->update($id, $request->validated());
+
         return $this->itemResponse(
-            new EmployeeResource($this->service->update($id, $request->validated())),
+            new EmployeeResource($employee),
             200,
-            ['message' => 'Empleado actualizado correctamente.']
+            [
+                'module' => 'employees',
+                'message' => 'Empleado actualizado correctamente.',
+            ],
+            ['self' => url('/api/employees/' . $employee->id)]
+        );
+    }
+
+    public function patch(PatchEmployeeRequest $request, int $id): JsonResponse
+    {
+        $employee = $this->service->update($id, $request->validated());
+
+        return $this->itemResponse(
+            new EmployeeResource($employee),
+            200,
+            [
+                'module' => 'employees',
+                'message' => 'Empleado actualizado parcialmente correctamente.',
+            ],
+            ['self' => url('/api/employees/' . $employee->id)]
+        );
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $employee = $this->service->delete($id);
+
+        return $this->itemResponse(
+            new EmployeeResource($employee),
+            200,
+            [
+                'module' => 'employees',
+                'message' => 'Empleado eliminado correctamente.',
+            ],
+            ['self' => url('/api/employees/' . $employee->id)]
         );
     }
 }

@@ -14,6 +14,9 @@ import { Employee } from '../models/employee.model';
       <h3>{{ employee().nombres }} {{ employee().apellidos }}</h3>
       <p>{{ employee().cargo }} · {{ employee().departamento }}</p>
       <small>{{ employee().email }}</small>
+      <small class="meta">
+        {{ employee().provincia_personal_nombre }} · {{ employee().jornada_parcial_label }}
+      </small>
     </article>
   `,
   styles: [`
@@ -47,6 +50,10 @@ import { Employee } from '../models/employee.model';
 
     h3, p, small {
       margin: 0;
+    }
+
+    .meta {
+      color: var(--muted);
     }
   `],
 })
