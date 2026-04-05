@@ -13,6 +13,7 @@ Se adopto Laravel para ganar:
 - manejo consistente de configuracion, errores y CORS
 - mejor base de mantenimiento y crecimiento
 - convenciones claras para una entrega mas profesional
+- una base mas solida para exponer una API con contrato uniforme
 
 ## 2. MVC modular
 
@@ -30,12 +31,30 @@ Estructura actual del backend:
 - `app/Modules/Provinces/{Controllers,Models,Repositories,Resources,Services}`
 - `app/Modules/Reports/{Controllers,Repositories,Services}`
 
-## 3. Frontend por features
+## 3. Contrato de API uniforme
+
+La API toma varias de sus ideas para elevar la consistencia del contrato.
+
+Decisiones adoptadas:
+
+- respuestas exitosas con `data`, `meta` y `links`
+- recursos con `type`, `id`, `attributes` y `relationships`
+- errores con `errors[]` y campos `status`, `code`, `title`, `detail` y `source`
+- paginacion con `meta.pagination` y links navegables
+- soporte para `PUT` y `PATCH` diferenciando actualizacion completa y parcial
+
+Motivo:
+
+- mejorar claridad para frontend
+- estandarizar pruebas y manejo de errores
+- dar una API mas madura sin meter complejidad innecesaria
+
+## 4. Frontend por features
 
 El frontend se separa por `core`, `shared` y `features`.
 Cada feature contiene sus paginas, componentes, modelos y capa `data-access` para consumir la API.
 
-## 4. Base de datos fuera del backend
+## 5. Base de datos fuera del backend
 
 `database/schema.sql` y `database/seed.sql` permanecen en la raiz para mantener separados:
 
@@ -43,7 +62,7 @@ Cada feature contiene sus paginas, componentes, modelos y capa `data-access` par
 - codigo de backend
 - codigo de frontend
 
-## 5. Modelo de datos versionado
+## 6. Modelo de datos versionado
 
 El modelo versionado se alinea con la base real usada por el backend Laravel.
 
