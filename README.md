@@ -47,7 +47,7 @@ ejercicio_programacion/
 │   ├── tests/
 │   ├── artisan
 │   ├── composer.json
-│   └── .env.template
+│   └── .env.example
 ├── frontend/
 │   ├── src/
 │   │   ├── app/
@@ -118,7 +118,7 @@ mysql -uroot -proot < database/seed.sql
 
 ```bash
 cd backend
-cp .env.template .env
+cp .env.example .env
 composer install
 composer run serve
 ```

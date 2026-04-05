@@ -19,12 +19,13 @@ class ReportsApiTest extends TestCase
 
         $this->getJson('/api/reports/employees?page=1&per_page=1&sort_by=nombres&sort_dir=asc')
             ->assertOk()
-            ->assertJsonPath('meta.current_page', 1)
-            ->assertJsonPath('meta.per_page', 1)
-            ->assertJsonPath('meta.total', 2)
+            ->assertJsonPath('meta.pagination.current_page', 1)
+            ->assertJsonPath('meta.pagination.per_page', 1)
+            ->assertJsonPath('meta.pagination.total', 2)
             ->assertJsonPath('meta.module', 'reports')
             ->assertJsonPath('meta.type', 'employees')
-            ->assertJsonPath('data.0.nombres', 'Ana');
+            ->assertJsonPath('data.0.type', 'employees')
+            ->assertJsonPath('data.0.attributes.nombres', 'Ana');
     }
 
     public function test_it_filters_employee_report_by_search_term(): void
@@ -40,8 +41,8 @@ class ReportsApiTest extends TestCase
 
         $this->getJson('/api/reports/employees?search=Supervisor')
             ->assertOk()
-            ->assertJsonPath('meta.total', 1)
-            ->assertJsonPath('data.0.nombres', 'Bruno');
+            ->assertJsonPath('meta.pagination.total', 1)
+            ->assertJsonPath('data.0.attributes.nombres', 'Bruno');
     }
 
     public function test_it_returns_employee_summary_report(): void
@@ -61,9 +62,11 @@ class ReportsApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('meta.module', 'reports')
             ->assertJsonPath('meta.type', 'summary')
-            ->assertJsonPath('data.total_empleados', 2)
-            ->assertJsonPath('data.empleados_vigentes', 1)
-            ->assertJsonPath('data.empleados_retirados', 1);
+            ->assertJsonPath('data.type', 'employee-report-summary')
+            ->assertJsonPath('data.id', 'employees')
+            ->assertJsonPath('data.attributes.total_empleados', 2)
+            ->assertJsonPath('data.attributes.empleados_vigentes', 1)
+            ->assertJsonPath('data.attributes.empleados_retirados', 1);
     }
 
     private function insertEmployee(array $overrides = []): void

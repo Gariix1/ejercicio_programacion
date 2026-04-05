@@ -22,9 +22,10 @@ php artisan test
 
 ## Configuracion
 
-1. Copiar `.env.template` como `.env`.
+1. Copiar `.env.example` como `.env`.
 2. Ajustar credenciales MySQL con valores reales.
 3. Ejecutar `../database/schema.sql` y `../database/seed.sql`.
+4. Opcionalmente, si la base ya tiene el esquema cargado, ejecutar `php artisan db:seed`. Este comando reutiliza `../database/seed.sql` como fuente oficial de datos semilla.
 
 ## Endpoints base
 

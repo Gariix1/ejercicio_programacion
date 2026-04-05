@@ -18,8 +18,9 @@ final class ProvinceController extends ApiController
     public function index(): JsonResponse
     {
         return $this->collectionResponse(
-            ProvinceResource::collection($this->service->list()),
-            ['meta' => ['module' => 'provinces']]
+            $this->service->list(),
+            ProvinceResource::class,
+            ['module' => 'provinces']
         );
     }
 }

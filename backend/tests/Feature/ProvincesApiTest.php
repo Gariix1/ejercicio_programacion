@@ -11,6 +11,8 @@ class ProvincesApiTest extends TestCase
         $this->getJson('/api/provinces')
             ->assertOk()
             ->assertJsonCount(2, 'data')
-            ->assertJsonPath('data.0.nombre', 'Azuay');
+            ->assertJsonPath('data.0.type', 'provinces')
+            ->assertJsonPath('data.0.attributes.nombre', 'Azuay')
+            ->assertJsonPath('meta.module', 'provinces');
     }
 }
