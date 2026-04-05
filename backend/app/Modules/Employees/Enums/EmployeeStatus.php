@@ -17,6 +17,14 @@ enum EmployeeStatus: int
         };
     }
 
+    public function description(): string
+    {
+        return match ($this) {
+            self::VIGENTE => 'Empleado activo en la organizacion.',
+            self::RETIRADO => 'Empleado retirado de la organizacion.',
+        };
+    }
+
     public static function codes(): array
     {
         return array_map(
@@ -42,5 +50,10 @@ enum EmployeeStatus: int
         }
 
         return $status->label() === strtoupper($label);
+    }
+
+    public static function fromCode(int $code): ?self
+    {
+        return self::tryFrom($code);
     }
 }

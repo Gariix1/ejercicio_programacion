@@ -73,6 +73,11 @@ final class EmployeeRepository
         return Employee::query()->findOrFail($id);
     }
 
+    public function delete(Employee $employee): void
+    {
+        $employee->delete();
+    }
+
     private function baseQuery(): Builder
     {
         return DB::table('empleados as e')

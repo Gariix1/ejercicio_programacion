@@ -87,4 +87,19 @@ final class EmployeeController extends ApiController
             ['self' => url('/api/employees/' . $employee->id)]
         );
     }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $employee = $this->service->delete($id);
+
+        return $this->itemResponse(
+            new EmployeeResource($employee),
+            200,
+            [
+                'module' => 'employees',
+                'message' => 'Empleado eliminado correctamente.',
+            ],
+            ['self' => url('/api/employees/' . $employee->id)]
+        );
+    }
 }

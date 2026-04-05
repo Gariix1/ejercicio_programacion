@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Employees\Resources;
 
+use App\Modules\Employees\Enums\EmployeeStatus;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -11,6 +12,8 @@ final class EmployeeResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $status = EmployeeStatus::fromCode((int) $this->estado_codigo);
+
         return [
             'type' => 'employees',
             'id' => (string) $this->id,
@@ -30,9 +33,11 @@ final class EmployeeResource extends JsonResource
                 'departamento' => $this->departamento,
                 'sueldo' => (float) $this->sueldo,
                 'jornada_parcial' => (bool) $this->jornada_parcial,
+                'jornada_parcial_label' => (bool) $this->jornada_parcial ? 'PARCIAL' : 'COMPLETA',
                 'observaciones_laborales' => $this->observaciones_laborales,
                 'estado_codigo' => (int) $this->estado_codigo,
                 'estado_nombre' => $this->estado_nombre,
+                'estado_descripcion' => $status?->description(),
                 'created_at' => (string) $this->created_at,
                 'updated_at' => (string) $this->updated_at,
             ],
@@ -53,6 +58,17 @@ final class EmployeeResource extends JsonResource
                     ],
                     'meta' => [
                         'nombre' => $this->provincia_laboral_nombre ?? $this->workProvince?->nombre,
+                    ],
+                ],
+                'estado' => [
+                    'data' => [
+                        'type' => 'employee-statuses',
+                        'id' => (string) $this->estado_codigo,
+                    ],
+                    'meta' => [
+                        'codigo' => (int) $this->estado_codigo,
+                        'nombre' => $this->estado_nombre,
+                        'descripcion' => $status?->description(),
                     ],
                 ],
             ],

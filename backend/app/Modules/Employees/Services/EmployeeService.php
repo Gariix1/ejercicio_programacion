@@ -43,4 +43,14 @@ final class EmployeeService
 
         return $this->repository->findDetailsOrFail($id);
     }
+
+    public function delete(int $id): EmployeeView
+    {
+        $employeeView = $this->repository->findDetailsOrFail($id);
+        $employee = $this->repository->getModelOrFail($id);
+
+        $this->repository->delete($employee);
+
+        return $employeeView;
+    }
 }

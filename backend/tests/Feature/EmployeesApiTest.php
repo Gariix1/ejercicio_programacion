@@ -16,9 +16,12 @@ class EmployeesApiTest extends TestCase
             ->assertJsonPath('data.attributes.codigo_empleado', 'E0001')
             ->assertJsonPath('data.attributes.sueldo', 1200.5)
             ->assertJsonPath('data.attributes.jornada_parcial', false)
+            ->assertJsonPath('data.attributes.jornada_parcial_label', 'COMPLETA')
             ->assertJsonPath('data.relationships.provincia_personal.data.id', '1')
             ->assertJsonPath('data.relationships.provincia_personal.meta.nombre', 'Azuay')
             ->assertJsonPath('data.relationships.provincia_laboral.meta.nombre', 'Pichincha')
+            ->assertJsonPath('data.relationships.estado.meta.codigo', 1)
+            ->assertJsonPath('data.relationships.estado.meta.nombre', 'VIGENTE')
             ->assertJsonPath('meta.module', 'employees')
             ->assertJsonPath('links.self', url('/api/employees/1'));
     }
@@ -197,6 +200,20 @@ class EmployeesApiTest extends TestCase
             'telefono' => '0777777777',
             'jornada_parcial' => true,
             'codigo_empleado' => 'E0001',
+        ]);
+    }
+
+    public function test_it_deletes_an_employee(): void
+    {
+        $this->deleteJson('/api/employees/1')
+            ->assertOk()
+            ->assertJsonPath('data.type', 'employees')
+            ->assertJsonPath('data.id', '1')
+            ->assertJsonPath('data.attributes.codigo_empleado', 'E0001')
+            ->assertJsonPath('meta.message', 'Empleado eliminado correctamente.');
+
+        $this->assertDatabaseMissing('empleados', [
+            'id' => 1,
         ]);
     }
 
