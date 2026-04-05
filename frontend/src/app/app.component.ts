@@ -7,14 +7,15 @@ import { RouterLink, RouterOutlet } from '@angular/router';
   imports: [RouterOutlet, RouterLink],
   template: `
     <main class="app-shell">
-      <header class="hero">
-        <p class="eyebrow">MVC modular + API</p>
-        <h1>Gestion de empleados y provincias</h1>
-        <p class="lead">
-          Frontend organizado por features y preparado para consumir el backend REST en PHP.
-        </p>
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-kicker">Ejercicio Programacion</span>
+          <strong>Modulo de empleados</strong>
+        </div>
+
         <nav class="nav">
-          <a routerLink="/employees">Empleados</a>
+          <a routerLink="/employees">Modulo</a>
+          <a routerLink="/reports">Reporte</a>
         </nav>
       </header>
 
@@ -25,57 +26,64 @@ import { RouterLink, RouterOutlet } from '@angular/router';
   `,
   styles: [`
     .app-shell {
-      max-width: 1100px;
+      max-width: 1680px;
       margin: 0 auto;
-      padding: 32px 20px 48px;
+      padding: 24px 20px 48px;
     }
 
-    .hero {
-      background: linear-gradient(135deg, rgba(239, 226, 209, 0.92), rgba(255, 250, 244, 0.96));
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
       border: 1px solid var(--border);
-      border-radius: 28px;
-      box-shadow: var(--shadow);
-      padding: 32px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.82);
+      padding: 16px 18px;
     }
 
-    .eyebrow {
-      margin: 0 0 8px;
-      color: var(--accent-strong);
-      font-size: 0.82rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
+    .brand {
+      display: grid;
+      gap: 2px;
     }
 
-    h1 {
+    .brand strong {
       margin: 0;
-      font-size: clamp(2rem, 5vw, 3.6rem);
-      line-height: 0.98;
+      font-size: 1rem;
     }
 
-    .lead {
-      max-width: 62ch;
+    .brand-kicker {
       color: var(--muted);
-      font-size: 1.05rem;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
 
     .nav {
       display: flex;
-      gap: 12px;
-      margin-top: 20px;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
     .nav a {
-      padding: 10px 16px;
+      padding: 8px 14px;
       border-radius: 999px;
-      background: var(--accent);
-      color: white;
+      border: 1px solid rgba(49, 119, 165, 0.2);
+      background: rgba(197, 228, 247, 0.72);
+      color: #255c80;
       text-decoration: none;
       font-weight: 600;
     }
 
     .content {
       padding-top: 24px;
+    }
+
+    @media (max-width: 640px) {
+      .topbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
     }
   `],
 })
