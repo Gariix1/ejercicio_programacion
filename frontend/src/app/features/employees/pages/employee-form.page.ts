@@ -24,6 +24,12 @@ import {
   patchEmployeeForm,
   resetEmployeeForm,
 } from '../forms/employee-form';
+import { buildEmployeeChangeSummary } from '../forms/employee-form-change-summary';
+import {
+  isManagedEmployeePhotoPath,
+  normalizeEmployeePhotoPath,
+  resolveDraftEmployeePhotoPath,
+} from '../forms/employee-photo.utils';
 import {
   EmployeeFormField,
   EmployeeFormFieldErrors,
@@ -73,6 +79,7 @@ import { EmployeePersonalFormComponent } from '../components/employee-personal-f
                 [photoUploading]="isUploadingPhoto"
                 [photoError]="photoUploadError"
                 (photoSelected)="onPhotoSelected($event)"
+                (photoRemoved)="onPhotoRemoved()"
               ></app-employee-personal-form>
 
               <app-employee-labor-form
@@ -194,6 +201,7 @@ export class EmployeeFormPageComponent implements OnDestroy {
   protected submitConfirmLabel = 'Guardar cambios';
   protected submitConfirmChanges: ConfirmActionChangeItem[] = [];
   private suppressBrowserUnloadPrompt = false;
+  private initialPhotoValue: string | null = null;
   private pendingSubmitContext: {
     mode: 'create' | 'edit';
     employeeId: number | null;
@@ -252,6 +260,7 @@ export class EmployeeFormPageComponent implements OnDestroy {
   private temporaryPhotoPreviewUrl: string | null = null;
 
   ngOnDestroy(): void {
+    void this.cleanupDraftPhoto();
     this.clearTemporaryPhotoPreview();
   }
 
@@ -306,6 +315,7 @@ export class EmployeeFormPageComponent implements OnDestroy {
     }
 
     const previousPreviewUrl = this.photoPreviewUrl;
+    const previousStoredPhotoPath = normalizeEmployeePhotoPath(this.form.controls.fotografia.value);
     this.photoPreviewUrl = this.createTemporaryPhotoPreview(file);
     this.isUploadingPhoto = true;
 
@@ -316,12 +326,33 @@ export class EmployeeFormPageComponent implements OnDestroy {
       this.form.controls.fotografia.markAsDirty();
       this.form.controls.fotografia.markAsTouched();
       this.photoPreviewUrl = uploadedPhoto.url;
+      await this.cleanupManagedPhotoIfDraft(previousStoredPhotoPath, uploadedPhoto.path);
     } catch (error) {
       this.clearTemporaryPhotoPreview();
       this.photoPreviewUrl = previousPreviewUrl;
       this.photoUploadError = this.resolvePhotoUploadError(error);
     } finally {
       this.isUploadingPhoto = false;
+    }
+  }
+
+  protected async onPhotoRemoved(): Promise<void> {
+    if (this.isUploadingPhoto || this.isSubmitting) {
+      return;
+    }
+
+    this.photoUploadError = null;
+
+    const draftPhotoPath = this.getDraftPhotoPath();
+
+    this.clearTemporaryPhotoPreview();
+    this.photoPreviewUrl = null;
+    this.form.controls.fotografia.setValue('');
+    this.form.controls.fotografia.markAsDirty();
+    this.form.controls.fotografia.markAsTouched();
+
+    if (draftPhotoPath) {
+      await this.cleanupManagedPhoto(draftPhotoPath);
     }
   }
 
@@ -368,8 +399,10 @@ export class EmployeeFormPageComponent implements OnDestroy {
     );
 
     try {
-      await firstValueFrom(request$);
+      const savedEmployee = await firstValueFrom(request$);
       await ensureMinimumProcessFeedbackDuration(feedbackStartedAt);
+      this.initialFormValue = { ...this.form.getRawValue() };
+      this.initialPhotoValue = normalizeEmployeePhotoPath(savedEmployee.fotografia);
 
       this.openProcessModal(
         'success',
@@ -418,7 +451,7 @@ export class EmployeeFormPageComponent implements OnDestroy {
 
   protected confirmDiscardChanges(): void {
     this.isDiscardModalOpen = false;
-    this.navigateToEmployees();
+    void this.discardChangesAndNavigate();
   }
 
   protected closeSubmitConfirmModal(): void {
@@ -528,6 +561,7 @@ export class EmployeeFormPageComponent implements OnDestroy {
     this.form.markAsPristine();
     this.form.markAsUntouched();
     this.initialFormValue = { ...this.form.getRawValue() };
+    this.initialPhotoValue = null;
     this.photoPreviewUrl = null;
     this.activeTab = 'personal';
     this.clearSubmitState();
@@ -539,6 +573,7 @@ export class EmployeeFormPageComponent implements OnDestroy {
     this.form.markAsPristine();
     this.form.markAsUntouched();
     this.initialFormValue = { ...this.form.getRawValue() };
+    this.initialPhotoValue = normalizeEmployeePhotoPath(employee.fotografia);
     this.photoPreviewUrl = employee.fotografia_url ?? employee.fotografia ?? null;
     this.activeTab = 'personal';
     this.clearSubmitState();
@@ -588,7 +623,7 @@ export class EmployeeFormPageComponent implements OnDestroy {
   }
 
   private getDiscardChanges(provinces: Province[] = []): ConfirmActionChangeItem[] {
-    return this.buildDiscardChanges(provinces);
+    return buildEmployeeChangeSummary(this.initialFormValue, this.form.getRawValue(), provinces);
   }
 
   private navigateToEmployees(extras?: { state?: { flashMessage: string } }): void {
@@ -597,136 +632,6 @@ export class EmployeeFormPageComponent implements OnDestroy {
     void this.router.navigate(['/employees'], extras).catch(() => {
       this.suppressBrowserUnloadPrompt = false;
     });
-  }
-
-  private buildDiscardChanges(provinces: Province[]): ConfirmActionChangeItem[] {
-    const current = this.form.getRawValue();
-    const baseline = this.initialFormValue;
-    const fields: (keyof EmployeeFormValue)[] = [
-      'codigo_empleado',
-      'nombres',
-      'apellidos',
-      'cedula',
-      'telefono',
-      'direccion',
-      'fecha_nacimiento',
-      'email',
-      'fotografia',
-      'observaciones_personales',
-      'fecha_ingreso',
-      'cargo',
-      'departamento',
-      'sueldo',
-      'jornada_parcial',
-      'observaciones_laborales',
-      'provincia_personal_id',
-      'provincia_laboral_id',
-      'estado_codigo',
-    ];
-
-    return fields
-      .filter((field) => this.normalizeCompareValue(baseline[field]) !== this.normalizeCompareValue(current[field]))
-      .map((field) => {
-        const before = this.formatChangeValue(field, baseline[field], provinces);
-        const after = this.formatChangeValue(field, current[field], provinces);
-
-        return before === 'Sin valor'
-          ? { label: this.getChangeLabel(field), after }
-          : { label: this.getChangeLabel(field), before, after };
-      });
-  }
-
-  private getChangeLabel(field: keyof EmployeeFormValue): string {
-    const labels: Record<keyof EmployeeFormValue, string> = {
-      codigo_empleado: 'Codigo de empleado',
-      nombres: 'Nombres',
-      apellidos: 'Apellidos',
-      cedula: 'Cedula',
-      telefono: 'Telefono',
-      direccion: 'Direccion',
-      fecha_nacimiento: 'Fecha de nacimiento',
-      email: 'Email',
-      fotografia: 'Fotografia',
-      observaciones_personales: 'Observaciones personales',
-      fecha_ingreso: 'Fecha de ingreso',
-      cargo: 'Cargo',
-      departamento: 'Departamento',
-      sueldo: 'Sueldo',
-      jornada_parcial: 'Jornada parcial',
-      observaciones_laborales: 'Observaciones laborales',
-      provincia_personal_id: 'Provincia personal',
-      provincia_laboral_id: 'Provincia laboral',
-      estado_codigo: 'Estado',
-      estado_nombre: 'Etiqueta de estado',
-    };
-
-    return labels[field];
-  }
-
-  private formatChangeValue(
-    field: keyof EmployeeFormValue,
-    value: EmployeeFormValue[keyof EmployeeFormValue],
-    provinces: Province[],
-  ): string {
-    if (value === null || value === undefined || value === '') {
-      return 'Sin valor';
-    }
-
-    switch (field) {
-      case 'provincia_personal_id':
-      case 'provincia_laboral_id': {
-        const province = provinces.find((item) => item.id === Number(value));
-        return province?.nombre ?? 'Sin valor';
-      }
-      case 'estado_codigo':
-        return Number(value) === 9 ? 'Retirado' : 'Vigente';
-      case 'jornada_parcial':
-        return value ? 'Parcial' : 'Completa';
-      case 'fotografia':
-        return this.formatPhotoValue(value);
-      case 'sueldo':
-        return new Intl.NumberFormat('es-EC', {
-          style: 'currency',
-          currency: 'USD',
-          minimumFractionDigits: 2,
-        }).format(Number(value));
-      case 'observaciones_personales':
-      case 'observaciones_laborales':
-      case 'direccion': {
-        const text = String(value).trim();
-        return text.length > 52 ? `${text.slice(0, 49)}...` : text;
-      }
-      default:
-        return String(value).trim() || 'Sin valor';
-    }
-  }
-
-  private formatPhotoValue(value: EmployeeFormValue[keyof EmployeeFormValue]): string {
-    const normalized = String(value ?? '').trim();
-
-    if (normalized === '') {
-      return 'Sin valor';
-    }
-
-    const fileName = normalized
-      .replace(/^https?:\/\/[^/]+/i, '')
-      .split('/')
-      .filter(Boolean)
-      .at(-1);
-
-    return fileName ? `Imagen: ${fileName}` : 'Imagen cargada';
-  }
-
-  private normalizeCompareValue(value: unknown): string {
-    if (value === null || value === undefined) {
-      return '';
-    }
-
-    if (typeof value === 'boolean') {
-      return value ? 'true' : 'false';
-    }
-
-    return String(value).trim();
   }
 
   private createTemporaryPhotoPreview(file: File): string {
@@ -741,6 +646,40 @@ export class EmployeeFormPageComponent implements OnDestroy {
       URL.revokeObjectURL(this.temporaryPhotoPreviewUrl);
       this.temporaryPhotoPreviewUrl = null;
     }
+  }
+
+  private getDraftPhotoPath(): string | null {
+    return resolveDraftEmployeePhotoPath(
+      this.form.controls.fotografia.value,
+      this.initialPhotoValue,
+    );
+  }
+
+  private async cleanupManagedPhotoIfDraft(previousPath: string | null, nextPath: string | null): Promise<void> {
+    if (!previousPath || previousPath === nextPath || previousPath === this.initialPhotoValue) {
+      return;
+    }
+
+    await this.cleanupManagedPhoto(previousPath);
+  }
+
+  private async cleanupDraftPhoto(): Promise<void> {
+    await this.cleanupManagedPhoto(this.getDraftPhotoPath());
+  }
+
+  private async cleanupManagedPhoto(path: string | null): Promise<void> {
+    if (!isManagedEmployeePhotoPath(path)) {
+      return;
+    }
+
+    try {
+      await firstValueFrom(this.employeesApiService.deletePhoto(path!));
+    } catch {}
+  }
+
+  private async discardChangesAndNavigate(): Promise<void> {
+    await this.cleanupDraftPhoto();
+    this.navigateToEmployees();
   }
 }
 

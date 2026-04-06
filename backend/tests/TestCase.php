@@ -29,11 +29,11 @@ abstract class TestCase extends BaseTestCase
             $table->string('nombre', 100)->unique();
             $table->string('capital', 100)->nullable();
             $table->text('descripcion')->nullable();
-            $table->string('poblacion', 50)->nullable();
+            $table->unsignedBigInteger('poblacion')->nullable();
             $table->decimal('superficie', 10, 2)->nullable();
             $table->decimal('latitud', 10, 6)->nullable();
             $table->decimal('longitud', 10, 6)->nullable();
-            $table->integer('id_region')->nullable();
+            $table->unsignedTinyInteger('id_region')->nullable();
             $table->timestamps();
         });
 

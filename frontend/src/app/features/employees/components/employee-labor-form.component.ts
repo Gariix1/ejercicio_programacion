@@ -2,7 +2,7 @@ import { NgFor } from '@angular/common';
 import { Component, input } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { Province } from '../../provinces/models/province.model';
-import { EmployeeFormGroup, syncEmployeeStatusLabel } from '../forms/employee-form';
+import { EmployeeFormGroup } from '../forms/employee-form';
 import {
   EmployeeFormField,
   EmployeeFormFieldErrors,
@@ -405,10 +405,6 @@ export class EmployeeLaborFormComponent {
     (input as HTMLInputElement & { showPicker?: () => void }).showPicker?.();
   }
 
-  protected syncStatusLabel(): void {
-    syncEmployeeStatusLabel(this.form());
-  }
-
   protected isCurrentStatusActive(): boolean {
     return Number(this.form().controls.estado_codigo.value ?? 1) !== 9;
   }
@@ -420,7 +416,6 @@ export class EmployeeLaborFormComponent {
     control.setValue(checked ? 1 : 9);
     control.markAsDirty();
     control.markAsTouched();
-    this.syncStatusLabel();
   }
 
   protected errorFor(field: EmployeeFormField): string | null {

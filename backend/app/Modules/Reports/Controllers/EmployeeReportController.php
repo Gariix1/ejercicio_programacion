@@ -30,6 +30,19 @@ final class EmployeeReportController extends ApiController
         );
     }
 
+    public function export(Request $request): JsonResponse
+    {
+        $items = $this->service->export(
+            EmployeeListFilters::fromRequest($request)
+        );
+
+        return $this->collectionResponse(
+            $items,
+            EmployeeResource::class,
+            ['module' => 'reports', 'type' => 'employees-export']
+        );
+    }
+
     public function summary(Request $request): JsonResponse
     {
         return $this->documentResponse(

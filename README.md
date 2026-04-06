@@ -1,167 +1,31 @@
 # Ejercicio de Programacion
 
-Sistema de gestion de empleados con backend API en Laravel, frontend Angular por features y MySQL 8 en `utf8mb4`.
+Sistema de gestion de empleados con backend API en Laravel, frontend Angular y MySQL 8.
 
-El proyecto ya cubre el flujo principal del challenge original: modulo de empleados, formulario de alta y edicion, reporte operativo, exportacion y soporte basico para fotografia de empleados.
+## Que incluye
 
-## Estado actual
-
-Listo hoy:
-
-- backend Laravel modular por dominios `Employees`, `Provinces` y `Reports`
-- contrato de API uniforme con `data`, `meta`, `links` y errores estructurados
-- listado de empleados con busqueda, ordenamiento y paginacion
+- modulo de empleados con listado, filtros, paginacion y edicion
 - formulario de empleados con datos personales y laborales
-- alta y edicion de empleados con validaciones
-- confirmaciones para descartar cambios y para confirmar actualizaciones
-- carga real de fotografia con preview y almacenamiento en backend
+- carga y gestion de fotografia
 - centro de reportes y reporte operativo de empleados
-- exportacion de reportes en `PDF`, `CSV` y `JSON`
-- componentes shared para botones, modales, banners, paginacion, navbar y paneles
-- estilo visual unificado con enfoque glassmorphism ligero
+- exportacion en `PDF`, `CSV` y `JSON`
 
-Todavia por cerrar o mejorar:
+## Requisitos
 
-- mas pruebas automaticas del frontend
-- mas reportes reales aparte del de empleados
-- limpieza final del arbol de cambios y separacion en commits pequenos
-- QA manual final en responsive y flujos borde
+- PHP 8.4+
+- Composer
+- Node.js 20+
+- npm
+- MySQL 8
 
-## Estructura
-
-```text
-ejercicio_programacion/
-├── backend/
-│   ├── app/
-│   │   ├── Core/
-│   │   └── Modules/
-│   │       ├── Employees/
-│   │       ├── Provinces/
-│   │       └── Reports/
-│   ├── bootstrap/
-│   ├── config/
-│   ├── public/
-│   ├── routes/
-│   │   ├── api.php
-│   │   └── web.php
-│   ├── storage/
-│   │   └── uploads/
-│   ├── tests/
-│   ├── artisan
-│   ├── composer.json
-│   └── .env.example
-├── frontend/
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── core/
-│   │   │   ├── shared/
-│   │   │   └── features/
-│   │   ├── assets/
-│   │   ├── environments/
-│   │   ├── vendor/
-│   │   ├── styles.scss
-│   │   └── main.ts
-│   ├── angular.json
-│   ├── package.json
-│   └── tsconfig.json
-├── database/
-│   ├── schema.sql
-│   └── seed.sql
-├── docs/
-│   └── decisions.md
-└── README.md
-```
-
-## Backend
-
-El backend sigue el flujo:
-
-`Route -> Controller -> Request -> Service -> Repository -> Database`
-
-Endpoints principales:
-
-- `GET /api/health`
-- `GET /api/employees`
-- `GET /api/employees/{id}`
-- `POST /api/employees`
-- `PUT /api/employees/{id}`
-- `PATCH /api/employees/{id}`
-- `DELETE /api/employees/{id}`
-- `POST /api/employees/photo`
-- `GET /api/employee-photos/{path}`
-- `GET /api/provinces`
-- `GET /api/reports/employees`
-- `GET /api/reports/summary`
-
-Capacidades relevantes:
-
-- filtros y ordenamiento en empleados y reportes
-- validaciones de negocio para estado, fechas y campos unicos
-- soporte para actualizacion parcial con `PATCH`
-- carga de fotografias hasta `6 MB`
-- entrega de fotografias por URL servida desde la propia API
-
-## Frontend
-
-El frontend se organiza por `core`, `shared` y `features`.
-
-Features principales:
-
-- `employees`
-  - listado
-  - formulario create/edit
-  - filtros
-  - tabla
-- `reports`
-  - home de reportes
-  - reporte de empleados
-
-Shared relevantes:
-
-- `top-nav`
-- `module-header`
-- `ui-button`
-- `status-banner`
-- `pagination-controls`
-- `confirm-action-modal`
-- `process-feedback-modal`
-- `export-modal`
-- `horizontal-scroll-shell`
-- `report-export.service`
-
-## Base de datos
-
-Tablas principales:
-
-- `provincias`
-- `empleados`
-
-Campos relevantes de `empleados`:
-
-- identificacion: `codigo_empleado`, `nombres`, `apellidos`, `cedula`
-- contacto: `telefono`, `direccion`, `email`
-- personales: `fecha_nacimiento`, `fotografia`, `observaciones_personales`
-- laborales: `fecha_ingreso`, `cargo`, `departamento`, `sueldo`, `jornada_parcial`, `observaciones_laborales`
-- relaciones: `provincia_personal_id`, `provincia_laboral_id`
-- estado: `estado_codigo`, `estado_nombre`
-
-Restricciones activas:
-
-- `UNIQUE` en `codigo_empleado`
-- `UNIQUE` en `cedula`
-- `FOREIGN KEY` hacia `provincias`
-- `CHECK` de coherencia entre `estado_codigo` y `estado_nombre`
-
-## Arranque local
-
-### 1. Base de datos
+## 1. Cargar base de datos
 
 ```bash
 mysql -uroot -proot < database/schema.sql
 mysql -uroot -proot < database/seed.sql
 ```
 
-### 2. Backend
+## 2. Correr backend
 
 ```bash
 cd backend
@@ -171,11 +35,11 @@ php artisan key:generate
 php artisan serve
 ```
 
-Backend disponible en:
+Backend:
 
 - `http://localhost:8000`
 
-### 3. Frontend
+## 3. Correr frontend
 
 ```bash
 cd frontend
@@ -183,11 +47,11 @@ npm install
 npm start
 ```
 
-Frontend disponible en:
+Frontend:
 
 - `http://localhost:4200`
 
-## Verificacion rapida
+## 4. Verificacion rapida
 
 Frontend:
 
@@ -200,35 +64,41 @@ Backend:
 
 ```bash
 cd backend
-./vendor/bin/phpunit tests/Feature/EmployeesApiTest.php
+./vendor/bin/phpunit tests/Feature/EmployeesApiTest.php tests/Feature/ReportsApiTest.php
 ```
 
-## Ejemplos de flujos actuales
+## 5. Probar en otro dispositivo de la red
 
-Modulo de empleados:
+Backend:
 
-- buscar empleados por nombre o codigo
-- ordenar tabla
-- paginar
-- abrir ficha para editar
+```bash
+cd backend
+composer run serve:lan
+```
 
-Formulario:
+Frontend:
 
-- crear empleado
-- editar empleado
-- cargar fotografia
-- confirmar actualizacion
-- confirmar salida con cambios sin guardar
+```bash
+cd frontend
+npm run start:lan
+```
 
-Reportes:
+Abrir desde otro dispositivo:
 
-- abrir centro de reportes
-- entrar al reporte operativo de empleados
-- filtrar y ordenar
-- exportar `PDF`, `CSV` o `JSON`
+- `http://<tu-ip-local>:4200`
 
-## Riesgos o notas de cierre
+## 6. Archivos locales que no deben subirse
 
-- el arbol de trabajo actual contiene muchos cambios simultaneos, por lo que conviene separar commits por bloques
-- hay bastante coverage funcional en backend de empleados, pero la parte visual del frontend depende todavia de QA manual
-- el sistema ya esta fuerte para demo o entrega funcional, pero aun conviene una pasada final de estabilizacion antes de considerar cierre total
+- `backend/storage/uploads`
+- `backend/storage/logs`
+- `backend/bootstrap/cache`
+- `frontend/dist`
+- `frontend/node_modules`
+- `backend/vendor`
+- archivos `.env`
+
+## 7. Documento tecnico
+
+La descripcion de herramientas, arquitectura y ubicacion de la logica esta en:
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md)

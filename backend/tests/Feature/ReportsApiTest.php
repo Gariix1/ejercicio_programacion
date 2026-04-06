@@ -45,6 +45,25 @@ class ReportsApiTest extends TestCase
             ->assertJsonPath('data.0.attributes.nombres', 'Bruno');
     }
 
+    public function test_it_exports_employee_report_with_independent_filters(): void
+    {
+        $this->insertEmployee([
+            'id' => 2,
+            'codigo_empleado' => 'E0002',
+            'nombres' => 'Bruno',
+            'cedula' => '1234567890',
+            'email' => 'bruno@example.com',
+        ]);
+
+        $this->getJson('/api/reports/employees/export?nombre=Ana&codigo=E0001')
+            ->assertOk()
+            ->assertJsonPath('meta.module', 'reports')
+            ->assertJsonPath('meta.type', 'employees-export')
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.attributes.nombres', 'Ana')
+            ->assertJsonPath('data.0.attributes.codigo_empleado', 'E0001');
+    }
+
     public function test_it_returns_employee_summary_report(): void
     {
         $this->insertEmployee([

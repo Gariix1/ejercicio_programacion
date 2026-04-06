@@ -171,20 +171,31 @@ import { UiButtonComponent } from '../../../shared/ui-button.component';
                 (change)="onPhotoInputChange($event)"
               />
 
-              <app-ui-button
-                class="w-100"
-                variant="outline-primary"
-                [disabled]="photoUploading()"
-                (click)="photoInput.click()"
-              >
-                <span
-                  *ngIf="photoUploading()"
-                  class="spinner-border spinner-border-sm me-2"
-                  role="status"
-                  aria-hidden="true"
-                ></span>
-                {{ photoUploading() ? 'Subiendo imagen...' : 'Cargar imagen' }}
-              </app-ui-button>
+              <div class="photo-actions">
+                <app-ui-button
+                  class="photo-action-main"
+                  variant="outline-primary"
+                  [disabled]="photoUploading()"
+                  (click)="photoInput.click()"
+                >
+                  <span
+                    *ngIf="photoUploading()"
+                    class="spinner-border spinner-border-sm me-2"
+                    role="status"
+                    aria-hidden="true"
+                  ></span>
+                  {{ photoUploading() ? 'Subiendo imagen...' : photoPreviewUrl() ? 'Cambiar imagen' : 'Cargar imagen' }}
+                </app-ui-button>
+
+                <app-ui-button
+                  *ngIf="photoPreviewUrl()"
+                  variant="outline-danger"
+                  [disabled]="photoUploading()"
+                  (click)="onRemovePhoto()"
+                >
+                  Eliminar
+                </app-ui-button>
+              </div>
 
               <small class="photo-error" *ngIf="photoError()">{{ photoError() }}</small>
             </div>
@@ -242,10 +253,26 @@ import { UiButtonComponent } from '../../../shared/ui-button.component';
       text-align: center;
     }
 
+    .photo-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .photo-action-main {
+      flex: 1 1 180px;
+    }
+
     @media (max-width: 640px) {
       .photo-card {
         justify-items: center;
         text-align: center;
+      }
+
+      .photo-actions {
+        flex-direction: column;
       }
     }
   `],
@@ -261,6 +288,7 @@ export class EmployeePersonalFormComponent {
   readonly photoUploading = input(false);
   readonly photoError = input<string | null>(null);
   readonly photoSelected = output<File>();
+  readonly photoRemoved = output<void>();
   protected readonly today = new Date().toISOString().slice(0, 10);
 
   protected openDatePicker(input: HTMLInputElement): void {
@@ -278,6 +306,10 @@ export class EmployeePersonalFormComponent {
 
     this.photoSelected.emit(file);
     input.value = '';
+  }
+
+  protected onRemovePhoto(): void {
+    this.photoRemoved.emit();
   }
 
   protected photoPreviewUrl(): string | null {

@@ -66,6 +66,9 @@ export type ProcessFeedbackState = 'loading' | 'success' | 'error';
       display: grid;
       place-items: center;
       padding: 20px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
       background: rgba(18, 28, 38, 0.24);
       backdrop-filter: blur(22px) saturate(1.16);
       animation: processBackdropIn 220ms ease both;
@@ -73,10 +76,14 @@ export type ProcessFeedbackState = 'loading' | 'success' | 'error';
 
     .process-modal {
       width: min(100%, 420px);
+      max-height: calc(100dvh - 40px);
       display: grid;
       gap: 18px;
       justify-items: center;
       padding: 28px 24px 22px;
+      overflow: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
       text-align: center;
       border-radius: 30px;
       border: 1px solid rgba(255, 255, 255, 0.34);
@@ -283,6 +290,24 @@ export type ProcessFeedbackState = 'loading' | 'success' | 'error';
     @keyframes processStrokeIn {
       to {
         stroke-dashoffset: 0;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .process-backdrop {
+        place-items: start center;
+        padding: 12px;
+      }
+
+      .process-modal {
+        max-height: calc(100dvh - 24px);
+        padding: 24px 18px 18px;
+        border-radius: 24px;
+      }
+
+      .process-visual {
+        width: 96px;
+        height: 96px;
       }
     }
 

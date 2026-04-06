@@ -10,6 +10,8 @@ final class EmployeeListFilters
 {
     public function __construct(
         public readonly ?string $search,
+        public readonly ?string $nombre,
+        public readonly ?string $codigo,
         public readonly string $sortBy,
         public readonly string $sortDir,
         public readonly int $page,
@@ -28,6 +30,8 @@ final class EmployeeListFilters
 
         return new self(
             search: self::normalizeSearch($filters['search'] ?? null),
+            nombre: self::normalizeSearch($filters['nombre'] ?? null),
+            codigo: self::normalizeSearch($filters['codigo'] ?? null),
             sortBy: (string) ($filters['sort_by'] ?? 'id'),
             sortDir: strtolower((string) ($filters['sort_dir'] ?? 'desc')) === 'asc' ? 'asc' : 'desc',
             page: $page,
@@ -39,6 +43,8 @@ final class EmployeeListFilters
     {
         return self::fromArray([
             'search' => $request->query('search'),
+            'nombre' => $request->query('nombre'),
+            'codigo' => $request->query('codigo'),
             'sort_by' => $request->query('sort_by', 'id'),
             'sort_dir' => $request->query('sort_dir', 'desc'),
             'page' => $request->query('page', 1),

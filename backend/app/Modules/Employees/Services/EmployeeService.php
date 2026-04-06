@@ -12,7 +12,10 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 final class EmployeeService
 {
-    public function __construct(private readonly EmployeeRepository $repository)
+    public function __construct(
+        private readonly EmployeeRepository $repository,
+        private readonly EmployeePhotoService $photoService,
+    )
     {
     }
 
@@ -38,10 +41,13 @@ final class EmployeeService
     public function update(int $id, array $payload): EmployeeView
     {
         $employee = $this->repository->getModelOrFail($id);
+        $previousPhoto = $employee->fotografia;
 
         $this->repository->update($employee, EmployeeData::fromArray($payload));
+        $updatedEmployee = $this->repository->findDetailsOrFail($id);
+        $this->photoService->replaceManagedPhoto($previousPhoto, $updatedEmployee->fotografia);
 
-        return $this->repository->findDetailsOrFail($id);
+        return $updatedEmployee;
     }
 
     public function delete(int $id): EmployeeView
@@ -50,6 +56,7 @@ final class EmployeeService
         $employee = $this->repository->getModelOrFail($id);
 
         $this->repository->delete($employee);
+        $this->photoService->deleteIfManaged($employeeView->fotografia);
 
         return $employeeView;
     }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Modules\Employees\Support;
 
-use App\Modules\Employees\Enums\EmployeeStatus;
 use Illuminate\Validation\Rule;
 
 final class EmployeeValidation
@@ -38,8 +37,7 @@ final class EmployeeValidation
             'observaciones_laborales' => ['nullable', 'string'],
             'provincia_personal_id' => ['required', 'integer', 'exists:provincias,id'],
             'provincia_laboral_id' => ['required', 'integer', 'exists:provincias,id'],
-            'estado_codigo' => ['required', 'integer', Rule::in(EmployeeStatus::codes())],
-            'estado_nombre' => ['required', 'string', Rule::in(EmployeeStatus::labels())],
+            'estado_codigo' => ['required', 'integer', Rule::in([1, 9])],
         ];
     }
 
@@ -80,8 +78,6 @@ final class EmployeeValidation
             'provincia_laboral_id.exists' => 'La provincia laboral seleccionada no existe.',
             'estado_codigo.required' => 'El estado codigo es obligatorio.',
             'estado_codigo.in' => 'El estado codigo debe ser 1 o 9.',
-            'estado_nombre.required' => 'El estado nombre es obligatorio.',
-            'estado_nombre.in' => 'El estado nombre debe ser VIGENTE o RETIRADO.',
         ];
     }
 
@@ -107,7 +103,6 @@ final class EmployeeValidation
             'provincia_personal_id' => 'provincia personal',
             'provincia_laboral_id' => 'provincia laboral',
             'estado_codigo' => 'estado codigo',
-            'estado_nombre' => 'estado nombre',
         ];
     }
 }

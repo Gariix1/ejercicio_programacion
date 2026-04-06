@@ -133,6 +133,9 @@ export interface ExportPreviewMetric {
       display: grid;
       place-items: center;
       padding: 20px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
       background: rgba(19, 30, 41, 0.28);
       backdrop-filter: blur(18px) saturate(1.1);
       animation: modalBackdropIn 220ms ease both;
@@ -140,9 +143,13 @@ export interface ExportPreviewMetric {
 
     .export-modal {
       width: min(100%, 920px);
+      max-height: calc(100dvh - 40px);
       display: grid;
       gap: 18px;
       padding: 22px;
+      overflow: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
       border-radius: 28px;
       border: 1px solid rgba(255, 255, 255, 0.34);
       background:
@@ -476,7 +483,13 @@ export interface ExportPreviewMetric {
     }
 
     @media (max-width: 640px) {
+      .export-modal-backdrop {
+        place-items: start center;
+        padding: 12px;
+      }
+
       .export-modal {
+        max-height: calc(100dvh - 24px);
         padding: 18px;
         border-radius: 24px;
       }

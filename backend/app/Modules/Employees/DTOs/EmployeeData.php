@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Employees\DTOs;
 
+use App\Modules\Employees\Enums\EmployeeStatus;
+
 final class EmployeeData
 {
     public function __construct(
@@ -32,6 +34,9 @@ final class EmployeeData
 
     public static function fromArray(array $payload): self
     {
+        $status = EmployeeStatus::fromCode((int) ($payload['estado_codigo'] ?? EmployeeStatus::VIGENTE->value))
+            ?? EmployeeStatus::VIGENTE;
+
         return new self(
             codigoEmpleado: (string) ($payload['codigo_empleado'] ?? ''),
             nombres: (string) ($payload['nombres'] ?? ''),
@@ -51,8 +56,8 @@ final class EmployeeData
             observacionesLaborales: isset($payload['observaciones_laborales']) ? (string) $payload['observaciones_laborales'] : null,
             provinciaPersonalId: (int) ($payload['provincia_personal_id'] ?? 0),
             provinciaLaboralId: (int) ($payload['provincia_laboral_id'] ?? 0),
-            estadoCodigo: (int) ($payload['estado_codigo'] ?? 1),
-            estadoNombre: (string) ($payload['estado_nombre'] ?? 'VIGENTE'),
+            estadoCodigo: $status->value,
+            estadoNombre: $status->label(),
         );
     }
 

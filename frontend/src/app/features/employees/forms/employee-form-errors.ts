@@ -16,8 +16,7 @@ export type EmployeeFormField =
   | 'sueldo'
   | 'provincia_personal_id'
   | 'provincia_laboral_id'
-  | 'estado_codigo'
-  | 'estado_nombre';
+  | 'estado_codigo';
 
 export type EmployeeFormFieldErrors = Partial<Record<EmployeeFormField, string>>;
 
@@ -52,7 +51,6 @@ const FIELD_LABELS: Record<EmployeeFormField, string> = {
   provincia_personal_id: 'La provincia personal',
   provincia_laboral_id: 'La provincia laboral',
   estado_codigo: 'El estado',
-  estado_nombre: 'La etiqueta de estado',
 };
 
 export function parseEmployeeApiErrors(payload: unknown): {

@@ -18,7 +18,7 @@ final class EmployeeRepository
 {
     public function all(EmployeeListFilters $filters): LengthAwarePaginator
     {
-        $query = $this->applySearch($this->baseQuery(), $filters->search);
+        $query = $this->applyFilters($this->baseQuery(), $filters);
         $query = $this->applySorting(
             $query,
             $filters->sortBy,
@@ -37,6 +37,20 @@ final class EmployeeRepository
         );
 
         return $result;
+    }
+
+    public function allForExport(EmployeeListFilters $filters): Collection
+    {
+        $query = $this->applyFilters($this->baseQuery(), $filters);
+        $query = $this->applySorting(
+            $query,
+            $filters->sortBy,
+            $filters->sortDir
+        );
+
+        return $this->mapViews(
+            collect($query->get())
+        );
     }
 
     public function findDetailsOrFail(int $id): EmployeeView
@@ -112,7 +126,15 @@ final class EmployeeRepository
             ]);
     }
 
-    private function applySearch(Builder $query, ?string $search): Builder
+    private function applyFilters(Builder $query, EmployeeListFilters $filters): Builder
+    {
+        $query = $this->applyGenericSearch($query, $filters->search);
+        $query = $this->applyNameFilter($query, $filters->nombre);
+
+        return $this->applyCodeFilter($query, $filters->codigo);
+    }
+
+    private function applyGenericSearch(Builder $query, ?string $search): Builder
     {
         $term = trim((string) $search);
 
@@ -134,6 +156,34 @@ final class EmployeeRepository
                 ->orWhere('pp.nombre', 'like', $like)
                 ->orWhere('pl.nombre', 'like', $like);
         });
+    }
+
+    private function applyNameFilter(Builder $query, ?string $nombre): Builder
+    {
+        $term = trim((string) $nombre);
+
+        if ($term === '') {
+            return $query;
+        }
+
+        $like = '%' . $term . '%';
+
+        return $query->where(function (Builder $builder) use ($like): void {
+            $builder
+                ->where('e.nombres', 'like', $like)
+                ->orWhere('e.apellidos', 'like', $like);
+        });
+    }
+
+    private function applyCodeFilter(Builder $query, ?string $codigo): Builder
+    {
+        $term = trim((string) $codigo);
+
+        if ($term === '') {
+            return $query;
+        }
+
+        return $query->where('e.codigo_empleado', 'like', '%' . $term . '%');
     }
 
     private function applySorting(Builder $query, string $sortBy, string $sortDirection): Builder

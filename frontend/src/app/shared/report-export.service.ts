@@ -77,15 +77,15 @@ export class ReportExportService {
     URL.revokeObjectURL(url);
   }
 
-  openPrintWindow(title: string, previewPath?: string): Window | null {
-    const printWindow = window.open('', '_blank');
+  openPreviewWindow(title: string, previewPath?: string): Window | null {
+    const previewWindow = window.open('', '_blank');
 
-    if (!printWindow) {
+    if (!previewWindow) {
       return null;
     }
 
-    printWindow.document.open();
-    printWindow.document.write(`
+    previewWindow.document.open();
+    previewWindow.document.write(`
       <!doctype html>
       <html lang="es">
         <head>
@@ -114,18 +114,19 @@ export class ReportExportService {
         </body>
       </html>
     `);
-    printWindow.document.close();
-    this.setPrintWindowPath(printWindow, previewPath);
+    previewWindow.document.close();
+    this.setPreviewWindowPath(previewWindow, previewPath);
+    this.restoreHostFocus(previewWindow);
 
-    return printWindow;
+    return previewWindow;
   }
 
-  renderPrintDocument<T>(
-    printWindow: Window | null,
+  renderPreviewDocument<T>(
+    previewWindow: Window | null,
     config: ExportDocumentConfig<T>,
     previewPath?: string,
   ): void {
-    if (!printWindow) {
+    if (!previewWindow) {
       return;
     }
 
@@ -168,8 +169,8 @@ export class ReportExportService {
       `)
       .join('');
 
-    printWindow.document.open();
-    printWindow.document.write(`
+    previewWindow.document.open();
+    previewWindow.document.write(`
       <!doctype html>
       <html lang="es">
         <head>
@@ -187,6 +188,17 @@ export class ReportExportService {
             .document {
               display: grid;
               gap: 18px;
+            }
+
+            .preview-note {
+              margin: 0;
+              padding: 10px 12px;
+              border-radius: 14px;
+              border: 1px solid #d9e7f2;
+              background: #f5f9fc;
+              color: #4f6272;
+              font-size: 12px;
+              line-height: 1.5;
             }
 
             .header {
@@ -301,6 +313,9 @@ export class ReportExportService {
         </head>
         <body>
           <article class="document">
+            <p class="preview-note">
+              Esta vista se abrio en una nueva pestaña. Usa la impresion del navegador para guardarla como PDF o imprimirla cuando lo necesites.
+            </p>
             <header class="header">
               <span class="eyebrow">Exportacion de reporte</span>
               <h1>${this.escapeHtml(config.title)}</h1>
@@ -321,9 +336,9 @@ export class ReportExportService {
         </body>
       </html>
     `);
-    printWindow.document.close();
-    this.setPrintWindowPath(printWindow, previewPath);
-    this.schedulePrint(printWindow);
+    previewWindow.document.close();
+    this.setPreviewWindowPath(previewWindow, previewPath);
+    this.restoreHostFocus(previewWindow);
   }
 
   private escapeCsvCell(value: unknown): string {
@@ -340,34 +355,28 @@ export class ReportExportService {
       .replace(/'/g, '&#39;');
   }
 
-  private schedulePrint(printWindow: Window): void {
-    let printed = false;
-
-    const triggerPrint = () => {
-      if (printed || printWindow.closed) {
-        return;
-      }
-
-      printed = true;
-      printWindow.focus();
-      printWindow.print();
-    };
-
-    printWindow.onload = () => {
-      window.setTimeout(triggerPrint, 120);
-    };
-
-    window.setTimeout(triggerPrint, 420);
-  }
-
-  private setPrintWindowPath(printWindow: Window, previewPath?: string): void {
+  private setPreviewWindowPath(previewWindow: Window, previewPath?: string): void {
     const fallbackPath = this.document.defaultView?.location.pathname ?? '/';
     const nextPath = previewPath?.trim() || fallbackPath;
 
     try {
-      printWindow.history.replaceState({ printPreview: true }, '', nextPath);
+      previewWindow.history.replaceState({ printPreview: true }, '', nextPath);
     } catch {
       // Some browsers may restrict history updates in popup previews.
+    }
+  }
+
+  private restoreHostFocus(previewWindow: Window): void {
+    try {
+      previewWindow.blur();
+    } catch {
+      // Ignore focus management restrictions.
+    }
+
+    try {
+      this.document.defaultView?.focus();
+    } catch {
+      // Browsers may block returning focus to the opener.
     }
   }
 

@@ -2,6 +2,8 @@ type FlatValue = string | number | boolean | null | undefined;
 
 export interface ListQueryParamsInput {
   search?: string;
+  nombre?: string;
+  codigo?: string;
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
   page?: number;
@@ -26,6 +28,14 @@ export function buildListQueryParams(query: ListQueryParamsInput = {}): URLSearc
 
   if (query.search) {
     params.set('search', query.search);
+  }
+
+  if (query.nombre) {
+    params.set('nombre', query.nombre);
+  }
+
+  if (query.codigo) {
+    params.set('codigo', query.codigo);
   }
 
   if (query.sortBy) {
