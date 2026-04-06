@@ -1,11 +1,20 @@
 import { AsyncPipe, NgFor, NgIf } from '@angular/common';
 import { Component } from '@angular/core';
-import { combineLatest, map, switchMap } from 'rxjs';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { firstValueFrom, combineLatest, map, switchMap } from 'rxjs';
+import { ActivatedRoute, Router } from '@angular/router';
+import { ActionBarComponent } from '../../../shared/action-bar.component';
+import { ExportFormatOption, ExportModalComponent, ExportPreviewMetric } from '../../../shared/export-modal.component';
 import { ModuleHeaderComponent } from '../../../shared/module-header.component';
-import { EmployeeSortField } from '../../employees/models/employee.model';
+import { PaginationControlsComponent } from '../../../shared/pagination-controls.component';
+import { ExportColumn, ReportExportService } from '../../../shared/report-export.service';
+import { ProcessFeedbackModalComponent, ProcessFeedbackState } from '../../../shared/process-feedback-modal.component';
+import { ensureMinimumProcessFeedbackDuration } from '../../../shared/process-feedback.utils';
+import { StatStripComponent } from '../../../shared/stat-strip.component';
+import { UiButtonComponent } from '../../../shared/ui-button.component';
+import { Employee, EmployeeListQuery, EmployeeSortField } from '../../employees/models/employee.model';
 import { ReportsApiService } from '../data-access/reports-api.service';
 import { ReportFiltersComponent, ReportFiltersValue } from '../components/report-filters.component';
+import { DEFAULT_REPORT_COLUMNS } from '../components/report-table.columns';
 import { ReportTableComponent } from '../components/report-table.component';
 
 @Component({
@@ -15,151 +24,154 @@ import { ReportTableComponent } from '../components/report-table.component';
     AsyncPipe,
     NgFor,
     NgIf,
-    RouterLink,
+    ActionBarComponent,
     ModuleHeaderComponent,
+    PaginationControlsComponent,
+    StatStripComponent,
+    UiButtonComponent,
+    ProcessFeedbackModalComponent,
+    ExportModalComponent,
     ReportFiltersComponent,
     ReportTableComponent,
   ],
   template: `
-    <section class="screen">
-      <app-module-header
-        moduleTitle="Modulo de Empleados"
-        sectionTitle="Reporte empleado"
-      ></app-module-header>
-
+    <section class="d-grid gap-3 w-100">
       <ng-container *ngIf="vm$ | async as vm">
-        <section class="report-meta">
-          <article class="meta-chip" *ngFor="let chip of vm.summaryChips">
-            <span class="meta-label">{{ chip.label }}</span>
-            <strong class="meta-value">{{ chip.value }}</strong>
-          </article>
-        </section>
+        <div class="app-page-max-shell">
+          <app-module-header
+            moduleTitle="Reportes"
+            sectionTitle="Reporte de empleados"
+          ></app-module-header>
 
-        <app-report-filters
-          class="mt-3"
-          [value]="filters"
-          (filtersChange)="onFiltersChange($event)"
-        ></app-report-filters>
+          <section class="app-surface-panel app-surface-panel--compact">
+            <header class="app-panel-header">
+              <div class="app-panel-copy app-panel-copy--wide">
+                <span class="app-panel-kicker">Consulta de empleados</span>
+                <h2 class="app-panel-title">Reporte operativo del catalogo</h2>
+              </div>
 
-        <section class="active-filters" *ngIf="vm.activeFilters.length > 0">
-          <span class="active-label">Filtros activos:</span>
-          <span class="active-chip" *ngFor="let filter of vm.activeFilters">{{ filter }}</span>
-        </section>
+              <app-action-bar align="end">
+                <app-ui-button variant="outline-primary" (click)="openExportModal()">
+                  Exportar
+                </app-ui-button>
+                <app-ui-button
+                  *ngIf="moduleBackLink"
+                  variant="link"
+                  [routerLink]="moduleBackLink"
+                >
+                  {{ moduleBackLabel }}
+                </app-ui-button>
+                <app-ui-button variant="link" routerLink="/reports">Volver a reportes</app-ui-button>
+              </app-action-bar>
+            </header>
 
-        <app-report-table
-          class="mt-3"
-          [result]="vm.report"
-          [sortBy]="filters.sortBy"
-          [sortDir]="filters.sortDir"
-          (sortChange)="onSortChange($event)"
-        ></app-report-table>
+            <app-stat-strip
+              ariaLabel="Resumen del reporte"
+              [items]="vm.summaryChips"
+            ></app-stat-strip>
 
-        <section class="pager" *ngIf="vm.report.pagination && vm.report.pagination.last_page > 1">
-          <button
-            class="btn btn-outline-secondary"
-            type="button"
-            [disabled]="!vm.report.links.prev"
-            (click)="goToPage(vm.report.pagination.current_page - 1)"
-          >
-            Anterior
-          </button>
+            <section class="app-panel-section">
+              <app-report-filters
+                [embedded]="true"
+                [activeCount]="vm.activeFilterCount"
+                [value]="filters"
+                (filtersChange)="onFiltersChange($event)"
+              ></app-report-filters>
 
-          <span class="pager-status">
-            Pagina {{ vm.report.pagination.current_page }} de {{ vm.report.pagination.last_page }}
-          </span>
+              <section class="app-filter-chips" *ngIf="vm.activeFilters.length > 0">
+                <span class="app-filter-label">Filtros activos:</span>
+                <span class="app-filter-chip" *ngFor="let filter of vm.activeFilters">{{ filter }}</span>
+              </section>
+            </section>
+          </section>
+        </div>
 
-          <button
-            class="btn btn-outline-primary"
-            type="button"
-            [disabled]="!vm.report.links.next"
-            (click)="goToPage(vm.report.pagination.current_page + 1)"
-          >
-            Siguiente
-          </button>
-        </section>
+        <div class="app-page-max-shell">
+          <app-report-table
+            [result]="vm.report"
+            [sortBy]="filters.sortBy"
+            [sortDir]="filters.sortDir"
+            (sortChange)="onSortChange($event)"
+          ></app-report-table>
 
-        <section class="actions mt-3">
-          <a class="btn btn-outline-secondary" routerLink="/employees">Volver al modulo</a>
-        </section>
+          <app-pagination-controls
+            *ngIf="vm.report.pagination && vm.report.pagination.last_page > 1"
+            [currentPage]="vm.report.pagination.current_page"
+            [lastPage]="vm.report.pagination.last_page"
+            [disablePrevious]="vm.report.pagination.current_page <= 1"
+            [disableNext]="vm.report.pagination.current_page >= vm.report.pagination.last_page"
+            [statusText]="vm.report.pagination.current_page + ' de ' + vm.report.pagination.last_page"
+            (previous)="goToPage(vm.report.pagination.current_page - 1, vm.report.pagination.last_page)"
+            (next)="goToPage(vm.report.pagination.current_page + 1, vm.report.pagination.last_page)"
+            (pageChange)="goToPage($event, vm.report.pagination.last_page)"
+          ></app-pagination-controls>
+        </div>
+
+        <app-export-modal
+          [open]="isExportModalOpen"
+          [busy]="isExporting"
+          [title]="'Exportar reporte de empleados'"
+          [description]="'Elige el formato y genera una version portable del reporte actual con sus filtros.'"
+          [fileName]="buildExportFileName()"
+          [formats]="exportFormats"
+          [previewMetrics]="buildExportPreviewMetrics(vm)"
+          [previewColumns]="exportPreviewColumns"
+          [activeFilters]="vm.activeFilters"
+          (close)="closeExportModal()"
+          (confirm)="onExport($event)"
+        ></app-export-modal>
+
+        <app-process-feedback-modal
+          [open]="isExportFeedbackOpen"
+          [state]="exportFeedbackState"
+          [title]="exportFeedbackTitle"
+          [description]="exportFeedbackDescription"
+          [actionLabel]="exportFeedbackActionLabel"
+          [requireActionConfirm]="exportFeedbackRequiresConfirm"
+          (close)="closeExportFeedback()"
+        ></app-process-feedback-modal>
       </ng-container>
     </section>
   `,
-  styles: [`
-    .screen {
-      width: min(100%, 1620px);
-      margin: 0 auto;
-      display: grid;
-      gap: 16px;
-    }
-
-    .report-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      padding: 12px 14px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.85);
-    }
-
-    .meta-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding-right: 14px;
-      border-right: 1px solid rgba(102, 124, 149, 0.18);
-    }
-
-    .meta-chip:last-child {
-      border-right: none;
-      padding-right: 0;
-    }
-
-    .meta-label {
-      color: var(--muted);
-      font-size: 0.76rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .meta-value {
-      font-size: 0.95rem;
-    }
-
-    .actions {
-      display: flex;
-      justify-content: center;
-    }
-
-    .active-filters,
-    .pager {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .active-label {
-      color: var(--muted);
-      font-size: 0.88rem;
-    }
-
-    .active-chip {
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(197, 228, 247, 0.75);
-      color: #255c80;
-      font-size: 0.85rem;
-    }
-
-    .pager-status {
-      color: var(--muted);
-      font-size: 0.9rem;
-    }
-  `],
 })
 export class EmployeesReportPageComponent {
+  protected readonly moduleBackLink = (this.route.snapshot.data['moduleBackLink'] as string | null) ?? null;
+  protected readonly moduleBackLabel = (this.route.snapshot.data['moduleBackLabel'] as string | null) ?? 'Volver al modulo';
+  protected readonly exportFormats: ExportFormatOption[] = [
+    {
+      id: 'pdf',
+      label: 'PDF',
+      description: 'Abre una version lista para imprimir o guardar como PDF.',
+      helper: 'Ideal para compartir, imprimir o conservar una copia formal del reporte.',
+    },
+    {
+      id: 'csv',
+      label: 'CSV',
+      description: 'Descarga los datos en formato tabular para Excel o analisis.',
+      helper: 'Conviene si luego quieres filtrar, ordenar o manipular la informacion fuera del sistema.',
+    },
+    {
+      id: 'json',
+      label: 'JSON',
+      description: 'Descarga una version estructurada lista para integraciones o procesamiento.',
+      helper: 'Util si luego quieres consumir el reporte desde scripts, APIs o herramientas tecnicas.',
+    },
+  ];
+  protected readonly exportPreviewColumns = DEFAULT_REPORT_COLUMNS.slice(0, 6).map((column) => column.label);
+  protected readonly exportColumns: ExportColumn<Employee>[] = DEFAULT_REPORT_COLUMNS.map((column) => ({
+    key: column.key,
+    label: column.label,
+    value: column.value,
+  }));
+  protected isExportModalOpen = false;
+  protected isExporting = false;
+  protected isExportFeedbackOpen = false;
+  protected exportFeedbackState: ProcessFeedbackState = 'loading';
+  protected exportFeedbackTitle = '';
+  protected exportFeedbackDescription = '';
+  protected exportFeedbackActionLabel = 'Entendido';
+  protected exportFeedbackRequiresConfirm = false;
+
   protected filters: ReportFiltersValue = {
     nombre: '',
     codigo: '',
@@ -201,6 +213,7 @@ export class EmployeesReportPageComponent {
     map(([summaryResult, reportState]) => ({
       report: reportState.report,
       activeFilters: reportState.activeFilters,
+      activeFilterCount: this.getActiveFilterCount(this.filters),
       summaryChips: [
         { label: 'Total empleados', value: summaryResult.summary.total_empleados },
         { label: 'Vigentes', value: summaryResult.summary.empleados_vigentes },
@@ -212,9 +225,28 @@ export class EmployeesReportPageComponent {
 
   constructor(
     private readonly reportsApiService: ReportsApiService,
+    private readonly reportExportService: ReportExportService,
     private readonly route: ActivatedRoute,
     private readonly router: Router,
   ) {}
+
+  protected openExportModal(): void {
+    this.isExportModalOpen = true;
+  }
+
+  protected closeExportModal(): void {
+    if (!this.isExporting) {
+      this.isExportModalOpen = false;
+    }
+  }
+
+  protected closeExportFeedback(): void {
+    if (this.exportFeedbackState === 'loading') {
+      return;
+    }
+
+    this.isExportFeedbackOpen = false;
+  }
 
   protected onFiltersChange(filters: ReportFiltersValue): void {
     this.filters = filters;
@@ -257,14 +289,173 @@ export class EmployeesReportPageComponent {
     });
   }
 
-  protected goToPage(page: number): void {
+  protected goToPage(page: number, lastPage: number): void {
+    const targetPage = Math.min(Math.max(page, 1), Math.max(lastPage, 1));
+    const currentPage = Number(this.route.snapshot.queryParamMap.get('page') ?? 1);
+
+    if (targetPage === currentPage) {
+      return;
+    }
+
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {
-        page,
+        page: targetPage,
       },
       queryParamsHandling: 'merge',
     });
+  }
+
+  protected buildExportPreviewMetrics(vm: {
+    report: { items: Employee[]; pagination: { total?: number; last_page?: number } | null };
+    activeFilters: string[];
+  }): ExportPreviewMetric[] {
+    return [
+      { label: 'Registros', value: vm.report.pagination?.total ?? vm.report.items.length },
+      { label: 'Columnas', value: this.exportColumns.length },
+      { label: 'Paginas', value: vm.report.pagination?.last_page ?? 1 },
+      { label: 'Filtros', value: vm.activeFilters.length || 'Sin filtros' },
+    ];
+  }
+
+  protected buildExportFileName(): string {
+    const date = new Date().toISOString().slice(0, 10);
+    return `reporte-empleados-${date}`;
+  }
+
+  protected async onExport(format: string): Promise<void> {
+    if (this.isExporting) {
+      return;
+    }
+
+    this.isExportModalOpen = false;
+    this.isExporting = true;
+    const printPreviewPath = this.router.url.split('?')[0] || '/reports/employees';
+    const loadingCopy = this.buildExportLoadingCopy(format);
+    const feedbackStartedAt = performance.now();
+    this.openExportFeedback('loading', loadingCopy.title, loadingCopy.description);
+    const printWindow = format === 'pdf'
+      ? this.reportExportService.openPrintWindow('Reporte de empleados', printPreviewPath)
+      : null;
+
+    try {
+      if (format === 'pdf' && !printWindow) {
+        throw new Error('popup-blocked');
+      }
+
+      const vm = await firstValueFrom(this.vm$);
+      const rows = await this.loadExportRows(vm.report.items, vm.report.pagination?.last_page ?? 1);
+      const documentConfig = {
+        fileName: this.buildExportFileName(),
+        title: 'Reporte de empleados',
+        subtitle: 'Exportacion del catalogo filtrado actual.',
+        rows,
+        columns: this.exportColumns,
+        summary: vm.summaryChips,
+        filters: vm.activeFilters,
+      };
+
+      if (format === 'csv') {
+        this.reportExportService.downloadCsv(documentConfig);
+      } else if (format === 'json') {
+        this.reportExportService.downloadJson(documentConfig);
+      } else {
+        this.reportExportService.renderPrintDocument(printWindow, documentConfig, printPreviewPath);
+      }
+
+      await ensureMinimumProcessFeedbackDuration(feedbackStartedAt);
+
+      const successCopy = this.buildExportSuccessCopy(format);
+      this.openExportFeedback(
+        'success',
+        successCopy.title,
+        successCopy.description,
+        'Listo',
+        true,
+      );
+    } catch (error) {
+      if (printWindow && !printWindow.closed) {
+        printWindow.close();
+      }
+
+      await ensureMinimumProcessFeedbackDuration(feedbackStartedAt);
+
+      const errorCopy = this.buildExportErrorCopy(format, error);
+      this.openExportFeedback('error', errorCopy.title, errorCopy.description, 'Cerrar');
+    } finally {
+      this.isExporting = false;
+    }
+  }
+
+  private openExportFeedback(
+    state: ProcessFeedbackState,
+    title: string,
+    description: string,
+    actionLabel = 'Entendido',
+    requireActionConfirm = false,
+  ): void {
+    this.exportFeedbackState = state;
+    this.exportFeedbackTitle = title;
+    this.exportFeedbackDescription = description;
+    this.exportFeedbackActionLabel = actionLabel;
+    this.exportFeedbackRequiresConfirm = requireActionConfirm;
+    this.isExportFeedbackOpen = true;
+  }
+
+  private buildExportLoadingCopy(format: string): { title: string; description: string } {
+    switch (format) {
+      case 'pdf':
+        return {
+          title: 'Preparando PDF',
+          description: 'Estamos armando una vista lista para imprimir o guardar como PDF.',
+        };
+      case 'json':
+        return {
+          title: 'Generando JSON',
+          description: 'Estamos serializando el reporte para que puedas reutilizarlo en integraciones o scripts.',
+        };
+      default:
+        return {
+          title: 'Generando CSV',
+          description: 'Estamos preparando el archivo tabular del reporte actual.',
+        };
+    }
+  }
+
+  private buildExportSuccessCopy(format: string): { title: string; description: string } {
+    switch (format) {
+      case 'pdf':
+        return {
+          title: 'PDF listo',
+          description: 'Se abrio una vista lista para imprimir o guardar como PDF desde tu navegador.',
+        };
+      case 'json':
+        return {
+          title: 'JSON listo',
+          description: 'La descarga del archivo estructurado comenzo correctamente.',
+        };
+      default:
+        return {
+          title: 'CSV listo',
+          description: 'La descarga del archivo tabular comenzo correctamente.',
+        };
+    }
+  }
+
+  private buildExportErrorCopy(format: string, error: unknown): { title: string; description: string } {
+    if (format === 'pdf' && error instanceof Error && error.message === 'popup-blocked') {
+      return {
+        title: 'No pudimos abrir el PDF',
+        description: 'Tu navegador bloqueo la ventana de impresion. Permite las ventanas emergentes e intentalo otra vez.',
+      };
+    }
+
+    return {
+      title: 'No pudimos exportar el reporte',
+      description: format === 'pdf'
+        ? 'Ocurrio un problema mientras preparabamos la vista imprimible del reporte.'
+        : 'Ocurrio un problema mientras preparabamos el archivo exportable.',
+    };
   }
 
   private mapQueryParamsToFilters(params: import('@angular/router').ParamMap): ReportFiltersValue {
@@ -278,6 +469,56 @@ export class EmployeesReportPageComponent {
       sortBy,
       sortDir,
       perPage: [20, 40, 80].includes(perPage) ? perPage : 40,
+    };
+  }
+
+  private getActiveFilterCount(filters: ReportFiltersValue): number {
+    let count = 0;
+
+    if (filters.nombre.trim()) {
+      count += 1;
+    }
+
+    if (filters.codigo.trim()) {
+      count += 1;
+    }
+
+    if (filters.sortBy !== 'nombres' || filters.sortDir !== 'asc') {
+      count += 1;
+    }
+
+    if (filters.perPage !== 40) {
+      count += 1;
+    }
+
+    return count;
+  }
+
+  private async loadExportRows(currentItems: Employee[], lastPage: number): Promise<Employee[]> {
+    if (lastPage <= 1) {
+      return currentItems;
+    }
+
+    const requests = Array.from({ length: lastPage }, (_, index) =>
+      firstValueFrom(this.reportsApiService.listEmployees(this.buildReportQuery(index + 1))),
+    );
+
+    const pages = await Promise.all(requests);
+
+    return pages.flatMap((page) => page.items);
+  }
+
+  private buildReportQuery(page: number): EmployeeListQuery {
+    const terms = [this.filters.nombre, this.filters.codigo]
+      .map((term) => term.trim())
+      .filter((term) => term !== '');
+
+    return {
+      search: terms.join(' '),
+      sortBy: this.filters.sortBy,
+      sortDir: this.filters.sortDir,
+      page,
+      perPage: this.filters.perPage,
     };
   }
 }

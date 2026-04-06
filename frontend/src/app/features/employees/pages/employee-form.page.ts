@@ -1,16 +1,28 @@
 import { AsyncPipe, NgIf } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component } from '@angular/core';
+import { Component, HostListener, OnDestroy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { catchError, combineLatest, map, of, shareReplay, switchMap, tap } from 'rxjs';
+import { ActivatedRoute, Router } from '@angular/router';
+import { catchError, combineLatest, firstValueFrom, map, of, shareReplay, switchMap, tap } from 'rxjs';
+import { ActionBarComponent } from '../../../shared/action-bar.component';
+import { ConfirmActionChangeItem, ConfirmActionModalComponent } from '../../../shared/confirm-action-modal.component';
+import { ModuleHeaderComponent } from '../../../shared/module-header.component';
+import { ProcessFeedbackModalComponent, ProcessFeedbackState } from '../../../shared/process-feedback-modal.component';
+import { ensureMinimumProcessFeedbackDuration } from '../../../shared/process-feedback.utils';
+import { StatusBannerComponent } from '../../../shared/status-banner.component';
+import { UiButtonComponent } from '../../../shared/ui-button.component';
 import { ProvincesApiService } from '../../provinces/data-access/provinces-api.service';
+import { Province } from '../../provinces/models/province.model';
 import { EmployeesApiService } from '../data-access/employees-api.service';
 import {
   buildEmployeeForm,
+  createEmployeeFormValue,
   EmployeeFormTab,
+  EmployeeFormGroup,
+  EmployeeFormValue,
   mapEmployeeFormToPayload,
   patchEmployeeForm,
+  resetEmployeeForm,
 } from '../forms/employee-form';
 import {
   EmployeeFormField,
@@ -28,108 +40,165 @@ import { EmployeePersonalFormComponent } from '../components/employee-personal-f
     AsyncPipe,
     NgIf,
     ReactiveFormsModule,
-    RouterLink,
+    ActionBarComponent,
+    ConfirmActionModalComponent,
+    ModuleHeaderComponent,
+    ProcessFeedbackModalComponent,
+    StatusBannerComponent,
+    UiButtonComponent,
     EmployeeFormShellComponent,
     EmployeePersonalFormComponent,
     EmployeeLaborFormComponent,
   ],
   template: `
-    <section class="screen">
+    <section class="app-form-page-shell">
       <ng-container *ngIf="vm$ | async as vm">
-        <app-employee-form-shell
-          [sectionTitle]="vm.sectionTitle"
-          [activeTab]="activeTab"
-          (tabChange)="onTabChange($event)"
-        >
-          <div class="status-banner status-banner--error mb-3" *ngIf="submitError">
-            {{ submitError }}
-          </div>
+        <ng-container *ngIf="!vm.loadError; else loadErrorState">
+          <app-employee-form-shell
+            [sectionTitle]="vm.sectionTitle"
+            [activeTab]="activeTab"
+            (tabChange)="onTabChange($event)"
+          >
+            <app-status-banner variant="error" class="mb-3" *ngIf="submitError">
+              {{ submitError }}
+            </app-status-banner>
 
-          <div class="status-banner status-banner--info mb-3" *ngIf="activeTab === 'personal'">
-            Completa los datos personales obligatorios antes de continuar a la ficha laboral.
-          </div>
+            <form [formGroup]="form" (ngSubmit)="onPrimaryAction(vm.mode, vm.employeeId, vm.provinces)">
+              <app-employee-personal-form
+                *ngIf="activeTab === 'personal'"
+                [form]="form"
+                [provinces]="vm.provinces"
+                [fieldErrors]="fieldErrors"
+                [photoPreviewSrc]="photoPreviewUrl"
+                [photoUploading]="isUploadingPhoto"
+                [photoError]="photoUploadError"
+                (photoSelected)="onPhotoSelected($event)"
+              ></app-employee-personal-form>
 
-          <form [formGroup]="form" (ngSubmit)="onPrimaryAction(vm.mode, vm.employeeId)">
-            <app-employee-personal-form
-              *ngIf="activeTab === 'personal'"
-              [form]="form"
-              [provinces]="vm.provinces"
-              [fieldErrors]="fieldErrors"
-            ></app-employee-personal-form>
+              <app-employee-labor-form
+                *ngIf="activeTab === 'labor'"
+                [form]="form"
+                [provinces]="vm.provinces"
+                [fieldErrors]="fieldErrors"
+              ></app-employee-labor-form>
+            </form>
 
-            <app-employee-labor-form
-              *ngIf="activeTab === 'labor'"
-              [form]="form"
-              [provinces]="vm.provinces"
-              [fieldErrors]="fieldErrors"
-            ></app-employee-labor-form>
-          </form>
-
-          <div form-actions class="d-flex flex-wrap justify-content-center gap-3">
-            <button
-              class="btn btn-success"
-              type="button"
-              [disabled]="isSubmitting"
-              (click)="onPrimaryAction(vm.mode, vm.employeeId)"
-            >
-              <span
-                *ngIf="isSubmitting"
-                class="spinner-border spinner-border-sm me-2"
-                role="status"
-                aria-hidden="true"
-              ></span>
-              {{
-                isSubmitting
-                  ? 'Guardando...'
-                  : activeTab === 'personal'
-                    ? 'Continuar'
+            <app-action-bar form-actions>
+              <app-ui-button
+                variant="success"
+                [disabled]="isSubmitting || isUploadingPhoto"
+                [wide]="true"
+                (click)="onPrimaryAction(vm.mode, vm.employeeId, vm.provinces)"
+              >
+                <span
+                  *ngIf="isSubmitting"
+                  class="spinner-border spinner-border-sm me-2"
+                  role="status"
+                  aria-hidden="true"
+                ></span>
+                {{
+                  isSubmitting
+                    ? 'Guardando...'
                     : vm.mode === 'create'
-                      ? 'Guardar'
-                      : 'Actualizar'
-              }}
-            </button>
+                      ? 'Guardar empleado'
+                      : 'Actualizar empleado'
+                }}
+              </app-ui-button>
 
-            <a class="btn btn-warning text-white" routerLink="/reports">Ver reporte</a>
-            <a class="btn btn-outline-secondary" routerLink="/employees">
-              {{ vm.mode === 'create' ? 'Cancelar' : 'Volver al listado' }}
-            </a>
+              <app-ui-button variant="outline-secondary" (click)="onCancelAction(vm.mode, vm.provinces)">
+                {{ vm.mode === 'create' ? 'Cancelar' : 'Volver al listado' }}
+              </app-ui-button>
+            </app-action-bar>
+          </app-employee-form-shell>
+        </ng-container>
+
+        <ng-template #loadErrorState>
+          <div class="app-page-stack">
+            <app-module-header
+              moduleTitle="Empleados"
+              [sectionTitle]="vm.sectionTitle"
+            ></app-module-header>
+
+            <section class="app-message-panel">
+              <app-status-banner variant="error">
+                {{ vm.loadError }}
+              </app-status-banner>
+
+              <app-action-bar class="mt-3">
+                <app-ui-button variant="outline-primary" routerLink="/employees">Volver al modulo</app-ui-button>
+              </app-action-bar>
+            </section>
           </div>
-        </app-employee-form-shell>
+        </ng-template>
+
+        <app-process-feedback-modal
+          [open]="isProcessModalOpen"
+          [state]="processModalState"
+          [title]="processModalTitle"
+          [description]="processModalDescription"
+          [actionLabel]="processModalActionLabel"
+          [requireActionConfirm]="processModalRequiresConfirm"
+          (close)="closeProcessModal()"
+        ></app-process-feedback-modal>
+
+        <app-confirm-action-modal
+          [open]="isDiscardModalOpen"
+          [title]="discardModalTitle"
+          [description]="discardModalDescription"
+          [changes]="discardModalChanges"
+          [cancelLabel]="'Seguir editando'"
+          [confirmLabel]="discardModalConfirmLabel"
+          [confirmVariant]="'warning'"
+          (close)="closeDiscardModal()"
+          (confirm)="confirmDiscardChanges()"
+        ></app-confirm-action-modal>
+
+        <app-confirm-action-modal
+          [open]="isSubmitConfirmModalOpen"
+          [title]="submitConfirmTitle"
+          [description]="submitConfirmDescription"
+          [changes]="submitConfirmChanges"
+          [cancelLabel]="'Seguir editando'"
+          [confirmLabel]="submitConfirmLabel"
+          [confirmVariant]="'primary'"
+          (close)="closeSubmitConfirmModal()"
+          (confirm)="confirmSubmitChanges()"
+        ></app-confirm-action-modal>
       </ng-container>
     </section>
   `,
-  styles: [`
-    .screen {
-      width: min(100%, 760px);
-      margin: 0 auto;
-    }
-
-    .status-banner {
-      padding: 12px 14px;
-      border-radius: 10px;
-      border: 1px solid transparent;
-      font-size: 0.92rem;
-    }
-
-    .status-banner--info {
-      border-color: rgba(49, 119, 165, 0.18);
-      background: rgba(197, 228, 247, 0.55);
-      color: #255c80;
-    }
-
-    .status-banner--error {
-      border-color: rgba(181, 56, 56, 0.2);
-      background: rgba(239, 211, 211, 0.7);
-      color: #8c1f1f;
-    }
-  `],
 })
-export class EmployeeFormPageComponent {
-  protected readonly form = buildEmployeeForm(this.formBuilder);
+export class EmployeeFormPageComponent implements OnDestroy {
+  protected readonly form: EmployeeFormGroup = buildEmployeeForm(this.formBuilder);
   protected activeTab: EmployeeFormTab = 'personal';
   protected isSubmitting = false;
   protected submitError: string | null = null;
   protected fieldErrors: EmployeeFormFieldErrors = {};
+  protected isProcessModalOpen = false;
+  protected processModalState: ProcessFeedbackState = 'loading';
+  protected processModalTitle = '';
+  protected processModalDescription = '';
+  protected processModalActionLabel = 'Entendido';
+  protected processModalRequiresConfirm = false;
+  protected isUploadingPhoto = false;
+  protected photoUploadError: string | null = null;
+  protected photoPreviewUrl: string | null = null;
+  protected isDiscardModalOpen = false;
+  protected discardModalTitle = '';
+  protected discardModalDescription = '';
+  protected discardModalConfirmLabel = 'Descartar cambios';
+  protected discardModalChanges: ConfirmActionChangeItem[] = [];
+  protected isSubmitConfirmModalOpen = false;
+  protected submitConfirmTitle = 'Confirmar actualizacion?';
+  protected submitConfirmDescription = 'Revisa los cambios antes de guardar la ficha del empleado.';
+  protected submitConfirmLabel = 'Guardar cambios';
+  protected submitConfirmChanges: ConfirmActionChangeItem[] = [];
+  private suppressBrowserUnloadPrompt = false;
+  private pendingSubmitContext: {
+    mode: 'create' | 'edit';
+    employeeId: number | null;
+    provinces: Province[];
+  } | null = null;
 
   protected readonly vm$ = combineLatest([
     this.route.data.pipe(
@@ -142,35 +211,31 @@ export class EmployeeFormPageComponent {
         return id ? Number(id) : null;
       }),
     ),
-    this.provincesApiService.list(),
   ]).pipe(
-    switchMap(([mode, employeeId, provinces]) => {
-      if (mode === 'edit' && employeeId !== null) {
-        return this.employeesApiService.findById(employeeId).pipe(
-          tap((employee) => patchEmployeeForm(this.form, employee)),
-          map(() => ({
-            mode,
-            employeeId,
-            provinces,
-            sectionTitle: 'Editar empleado',
-          })),
-        );
-      }
+    switchMap(([mode, employeeId]) =>
+      this.provincesApiService.list().pipe(
+        switchMap((provinces) => {
+          if (mode === 'edit' && employeeId !== null) {
+            return this.employeesApiService.findById(employeeId).pipe(
+              tap((employee) => this.prepareEditForm(employee)),
+              map(() => this.buildVm(mode, employeeId, provinces)),
+              catchError((error) => of(this.buildLoadErrorVm(mode, error, employeeId, provinces))),
+            );
+          }
 
-      return of({
-        mode,
-        employeeId,
-        provinces,
-        sectionTitle: 'Crear empleado nuevo',
-      });
-    }),
-    catchError(() =>
-      of({
-        mode: 'create' as const,
-        employeeId: null,
-        provinces: [],
-        sectionTitle: 'Crear empleado nuevo',
-      }),
+          if (mode === 'edit') {
+            return of(this.buildLoadErrorVm(mode, new Error('missing-id'), employeeId, provinces));
+          }
+
+          this.prepareCreateForm();
+
+          return of(this.buildVm(mode, employeeId, provinces));
+        }),
+        catchError((error) => of(this.buildLoadErrorVm(mode, error, employeeId, []))),
+      ),
+    ),
+    catchError((error) =>
+      of(this.buildLoadErrorVm('create', error, null, [])),
     ),
     shareReplay({ bufferSize: 1, refCount: true }),
   );
@@ -183,30 +248,107 @@ export class EmployeeFormPageComponent {
     private readonly router: Router,
   ) {}
 
+  private initialFormValue: EmployeeFormValue = createEmployeeFormValue();
+  private temporaryPhotoPreviewUrl: string | null = null;
+
+  ngOnDestroy(): void {
+    this.clearTemporaryPhotoPreview();
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  protected onBeforeUnload(event: BeforeUnloadEvent): void {
+    if (this.hasDiscardableChanges() && !this.isSubmitting && !this.suppressBrowserUnloadPrompt) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+  }
+
   protected onTabChange(tab: EmployeeFormTab): void {
     this.activeTab = tab;
   }
 
-  protected onPrimaryAction(mode: 'create' | 'edit', employeeId: number | null): void {
+  protected onCancelAction(mode: 'create' | 'edit', provinces: Province[]): void {
+    if (this.isSubmitting) {
+      return;
+    }
+
+    const changes = this.getDiscardChanges(provinces);
+
+    if (changes.length === 0) {
+      this.navigateToEmployees();
+      return;
+    }
+
+    this.discardModalTitle = mode === 'edit' ? 'Descartar cambios?' : 'Salir del formulario?';
+    this.discardModalDescription = mode === 'edit'
+      ? 'Tienes cambios sin guardar en la ficha del empleado. Si sales ahora, se perderan.'
+      : 'Ya comenzaste a llenar la ficha del empleado. Si sales ahora, se perdera la informacion cargada.';
+    this.discardModalConfirmLabel = mode === 'edit' ? 'Descartar cambios' : 'Salir sin guardar';
+    this.discardModalChanges = changes;
+    this.isDiscardModalOpen = true;
+  }
+
+  protected async onPhotoSelected(file: File): Promise<void> {
+    if (this.isUploadingPhoto || this.isSubmitting) {
+      return;
+    }
+
+    this.photoUploadError = null;
+
+    if (!this.isSupportedPhoto(file)) {
+      this.photoUploadError = 'La imagen debe estar en formato JPG, PNG o WEBP.';
+      return;
+    }
+
+    if (file.size > 6 * 1024 * 1024) {
+      this.photoUploadError = 'La imagen no puede superar los 6 MB.';
+      return;
+    }
+
+    const previousPreviewUrl = this.photoPreviewUrl;
+    this.photoPreviewUrl = this.createTemporaryPhotoPreview(file);
+    this.isUploadingPhoto = true;
+
+    try {
+      const uploadedPhoto = await firstValueFrom(this.employeesApiService.uploadPhoto(file));
+      this.clearTemporaryPhotoPreview();
+      this.form.controls.fotografia.setValue(uploadedPhoto.path);
+      this.form.controls.fotografia.markAsDirty();
+      this.form.controls.fotografia.markAsTouched();
+      this.photoPreviewUrl = uploadedPhoto.url;
+    } catch (error) {
+      this.clearTemporaryPhotoPreview();
+      this.photoPreviewUrl = previousPreviewUrl;
+      this.photoUploadError = this.resolvePhotoUploadError(error);
+    } finally {
+      this.isUploadingPhoto = false;
+    }
+  }
+
+  protected async onPrimaryAction(
+    mode: 'create' | 'edit',
+    employeeId: number | null,
+    provinces: Province[],
+    skipConfirmation = false,
+  ): Promise<void> {
     this.clearSubmitState();
 
-    if (this.activeTab === 'personal') {
-      if (this.hasInvalidFields(this.personalFields)) {
-        this.markFieldsTouched(this.personalFields);
-
-        return;
-      }
-
-      this.activeTab = 'labor';
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      this.activeTab = this.resolveInvalidTab();
 
       return;
     }
 
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      this.activeTab = this.hasInvalidFields(this.personalFields) ? 'personal' : 'labor';
+    if (mode === 'edit' && employeeId !== null && !skipConfirmation) {
+      const changes = this.getDiscardChanges(provinces);
 
-      return;
+      if (changes.length > 0) {
+        this.pendingSubmitContext = { mode, employeeId, provinces };
+        this.submitConfirmChanges = changes;
+        this.isSubmitConfirmModalOpen = true;
+        return;
+      }
     }
 
     const payload = mapEmployeeFormToPayload(this.form.getRawValue());
@@ -216,34 +358,85 @@ export class EmployeeFormPageComponent {
       : this.employeesApiService.create(payload);
 
     this.isSubmitting = true;
+    const feedbackStartedAt = performance.now();
+    this.openProcessModal(
+      'loading',
+      mode === 'edit' ? 'Actualizando empleado' : 'Guardando empleado',
+      mode === 'edit'
+        ? 'Estamos aplicando los cambios en la ficha del empleado.'
+        : 'Estamos registrando la nueva ficha del empleado.',
+    );
 
-    request$.subscribe({
-      next: () => {
-        this.router.navigate(['/employees'], {
-          state: {
-            flashMessage: mode === 'edit'
-              ? 'Empleado actualizado correctamente.'
-              : 'Empleado creado correctamente.',
-          },
-        });
-      },
-      error: (error: HttpErrorResponse) => {
-        this.isSubmitting = false;
+    try {
+      await firstValueFrom(request$);
+      await ensureMinimumProcessFeedbackDuration(feedbackStartedAt);
 
-        const parsedErrors = parseEmployeeApiErrors(error.error);
+      this.openProcessModal(
+        'success',
+        mode === 'edit' ? 'Empleado actualizado' : 'Empleado creado',
+        mode === 'edit'
+          ? 'Los cambios se guardaron correctamente.'
+          : 'La ficha del empleado se creo correctamente.',
+        mode === 'edit' ? 'Volver al listado' : 'Ir al listado',
+        true,
+      );
+    } catch (error) {
+      await ensureMinimumProcessFeedbackDuration(feedbackStartedAt);
+      this.isSubmitting = false;
+      this.isProcessModalOpen = false;
 
-        this.submitError = parsedErrors.formError;
-        this.fieldErrors = parsedErrors.fieldErrors;
+      const parsedErrors = parseEmployeeApiErrors((error as HttpErrorResponse).error);
 
-        const firstInvalidTab = this.hasInvalidFields(this.personalFields)
-          || this.hasApiFieldErrors(this.personalFields)
-          ? 'personal'
-          : 'labor';
+      this.submitError = parsedErrors.formError;
+      this.fieldErrors = parsedErrors.fieldErrors;
+      this.activeTab = this.resolveInvalidTab();
+      this.markFieldsTouched(this.activeTab === 'personal' ? this.personalFields : this.laborFields);
+    }
+  }
 
-        this.activeTab = firstInvalidTab;
-        this.markFieldsTouched(firstInvalidTab === 'personal' ? this.personalFields : this.laborFields);
-      },
-    });
+  protected closeProcessModal(): void {
+    if (this.processModalState === 'loading') {
+      return;
+    }
+
+    this.isProcessModalOpen = false;
+
+    if (this.processModalState === 'success') {
+      this.navigateToEmployees({
+        state: {
+          flashMessage: this.route.snapshot.data['mode'] === 'edit'
+            ? 'Empleado actualizado correctamente.'
+            : 'Empleado creado correctamente.',
+        },
+      });
+    }
+  }
+
+  protected closeDiscardModal(): void {
+    this.isDiscardModalOpen = false;
+  }
+
+  protected confirmDiscardChanges(): void {
+    this.isDiscardModalOpen = false;
+    this.navigateToEmployees();
+  }
+
+  protected closeSubmitConfirmModal(): void {
+    this.isSubmitConfirmModalOpen = false;
+    this.pendingSubmitContext = null;
+  }
+
+  protected confirmSubmitChanges(): void {
+    const context = this.pendingSubmitContext;
+
+    this.isSubmitConfirmModalOpen = false;
+    this.pendingSubmitContext = null;
+
+    if (!context) {
+      return;
+    }
+
+    void this.onPrimaryAction(context.mode, context.employeeId, context.provinces, true);
   }
 
   private readonly personalFields: EmployeeFormField[] = [
@@ -281,8 +474,280 @@ export class EmployeeFormPageComponent {
     return fields.some((field) => Boolean(this.fieldErrors[field]));
   }
 
+  private resolveInvalidTab(): EmployeeFormTab {
+    const currentFields = this.activeTab === 'personal' ? this.personalFields : this.laborFields;
+
+    if (this.hasInvalidFields(currentFields) || this.hasApiFieldErrors(currentFields)) {
+      return this.activeTab;
+    }
+
+    return this.hasInvalidFields(this.personalFields) || this.hasApiFieldErrors(this.personalFields)
+      ? 'personal'
+      : 'labor';
+  }
+
   private clearSubmitState(): void {
     this.submitError = null;
     this.fieldErrors = {};
+    this.photoUploadError = null;
   }
+
+  private isSupportedPhoto(file: File): boolean {
+    return ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
+  }
+
+  private resolvePhotoUploadError(error: unknown): string {
+    const response = error as HttpErrorResponse | null;
+    const apiDetail = response?.error?.errors?.[0]?.detail;
+
+    if (typeof apiDetail === 'string' && apiDetail.trim() !== '') {
+      return apiDetail;
+    }
+
+    return 'No pudimos cargar la imagen. Intenta nuevamente.';
+  }
+
+  private openProcessModal(
+    state: ProcessFeedbackState,
+    title: string,
+    description: string,
+    actionLabel = 'Entendido',
+    requireActionConfirm = false,
+  ): void {
+    this.processModalState = state;
+    this.processModalTitle = title;
+    this.processModalDescription = description;
+    this.processModalActionLabel = actionLabel;
+    this.processModalRequiresConfirm = requireActionConfirm;
+    this.isProcessModalOpen = true;
+  }
+
+  private prepareCreateForm(): void {
+    this.clearTemporaryPhotoPreview();
+    resetEmployeeForm(this.form);
+    this.form.markAsPristine();
+    this.form.markAsUntouched();
+    this.initialFormValue = { ...this.form.getRawValue() };
+    this.photoPreviewUrl = null;
+    this.activeTab = 'personal';
+    this.clearSubmitState();
+  }
+
+  private prepareEditForm(employee: Parameters<typeof patchEmployeeForm>[1]): void {
+    this.clearTemporaryPhotoPreview();
+    patchEmployeeForm(this.form, employee);
+    this.form.markAsPristine();
+    this.form.markAsUntouched();
+    this.initialFormValue = { ...this.form.getRawValue() };
+    this.photoPreviewUrl = employee.fotografia_url ?? employee.fotografia ?? null;
+    this.activeTab = 'personal';
+    this.clearSubmitState();
+  }
+
+  private buildVm(
+    mode: 'create' | 'edit',
+    employeeId: number | null,
+    provinces: Province[],
+  ): EmployeeFormVm {
+    return {
+      mode,
+      employeeId,
+      provinces,
+      sectionTitle: mode === 'edit' ? 'Editar empleado' : 'Crear empleado nuevo',
+      loadError: null,
+    };
+  }
+
+  private buildLoadErrorVm(
+    mode: 'create' | 'edit',
+    error: unknown,
+    employeeId: number | null,
+    provinces: Province[],
+  ): EmployeeFormVm {
+    this.activeTab = 'personal';
+    this.clearSubmitState();
+
+    const responseError = error instanceof HttpErrorResponse ? error : null;
+    const loadError = mode === 'edit'
+      ? responseError?.status === 404
+        ? 'No encontramos el empleado que intentabas editar.'
+        : 'No pudimos cargar la ficha del empleado. Intenta nuevamente o vuelve al modulo.'
+      : 'No pudimos preparar el formulario del empleado. Intenta nuevamente.';
+
+    return {
+      mode,
+      employeeId,
+      provinces,
+      sectionTitle: mode === 'edit' ? 'Editar empleado' : 'Crear empleado nuevo',
+      loadError,
+    };
+  }
+
+  private hasDiscardableChanges(): boolean {
+    return this.getDiscardChanges().length > 0;
+  }
+
+  private getDiscardChanges(provinces: Province[] = []): ConfirmActionChangeItem[] {
+    return this.buildDiscardChanges(provinces);
+  }
+
+  private navigateToEmployees(extras?: { state?: { flashMessage: string } }): void {
+    this.suppressBrowserUnloadPrompt = true;
+
+    void this.router.navigate(['/employees'], extras).catch(() => {
+      this.suppressBrowserUnloadPrompt = false;
+    });
+  }
+
+  private buildDiscardChanges(provinces: Province[]): ConfirmActionChangeItem[] {
+    const current = this.form.getRawValue();
+    const baseline = this.initialFormValue;
+    const fields: (keyof EmployeeFormValue)[] = [
+      'codigo_empleado',
+      'nombres',
+      'apellidos',
+      'cedula',
+      'telefono',
+      'direccion',
+      'fecha_nacimiento',
+      'email',
+      'fotografia',
+      'observaciones_personales',
+      'fecha_ingreso',
+      'cargo',
+      'departamento',
+      'sueldo',
+      'jornada_parcial',
+      'observaciones_laborales',
+      'provincia_personal_id',
+      'provincia_laboral_id',
+      'estado_codigo',
+    ];
+
+    return fields
+      .filter((field) => this.normalizeCompareValue(baseline[field]) !== this.normalizeCompareValue(current[field]))
+      .map((field) => {
+        const before = this.formatChangeValue(field, baseline[field], provinces);
+        const after = this.formatChangeValue(field, current[field], provinces);
+
+        return before === 'Sin valor'
+          ? { label: this.getChangeLabel(field), after }
+          : { label: this.getChangeLabel(field), before, after };
+      });
+  }
+
+  private getChangeLabel(field: keyof EmployeeFormValue): string {
+    const labels: Record<keyof EmployeeFormValue, string> = {
+      codigo_empleado: 'Codigo de empleado',
+      nombres: 'Nombres',
+      apellidos: 'Apellidos',
+      cedula: 'Cedula',
+      telefono: 'Telefono',
+      direccion: 'Direccion',
+      fecha_nacimiento: 'Fecha de nacimiento',
+      email: 'Email',
+      fotografia: 'Fotografia',
+      observaciones_personales: 'Observaciones personales',
+      fecha_ingreso: 'Fecha de ingreso',
+      cargo: 'Cargo',
+      departamento: 'Departamento',
+      sueldo: 'Sueldo',
+      jornada_parcial: 'Jornada parcial',
+      observaciones_laborales: 'Observaciones laborales',
+      provincia_personal_id: 'Provincia personal',
+      provincia_laboral_id: 'Provincia laboral',
+      estado_codigo: 'Estado',
+      estado_nombre: 'Etiqueta de estado',
+    };
+
+    return labels[field];
+  }
+
+  private formatChangeValue(
+    field: keyof EmployeeFormValue,
+    value: EmployeeFormValue[keyof EmployeeFormValue],
+    provinces: Province[],
+  ): string {
+    if (value === null || value === undefined || value === '') {
+      return 'Sin valor';
+    }
+
+    switch (field) {
+      case 'provincia_personal_id':
+      case 'provincia_laboral_id': {
+        const province = provinces.find((item) => item.id === Number(value));
+        return province?.nombre ?? 'Sin valor';
+      }
+      case 'estado_codigo':
+        return Number(value) === 9 ? 'Retirado' : 'Vigente';
+      case 'jornada_parcial':
+        return value ? 'Parcial' : 'Completa';
+      case 'fotografia':
+        return this.formatPhotoValue(value);
+      case 'sueldo':
+        return new Intl.NumberFormat('es-EC', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 2,
+        }).format(Number(value));
+      case 'observaciones_personales':
+      case 'observaciones_laborales':
+      case 'direccion': {
+        const text = String(value).trim();
+        return text.length > 52 ? `${text.slice(0, 49)}...` : text;
+      }
+      default:
+        return String(value).trim() || 'Sin valor';
+    }
+  }
+
+  private formatPhotoValue(value: EmployeeFormValue[keyof EmployeeFormValue]): string {
+    const normalized = String(value ?? '').trim();
+
+    if (normalized === '') {
+      return 'Sin valor';
+    }
+
+    const fileName = normalized
+      .replace(/^https?:\/\/[^/]+/i, '')
+      .split('/')
+      .filter(Boolean)
+      .at(-1);
+
+    return fileName ? `Imagen: ${fileName}` : 'Imagen cargada';
+  }
+
+  private normalizeCompareValue(value: unknown): string {
+    if (value === null || value === undefined) {
+      return '';
+    }
+
+    if (typeof value === 'boolean') {
+      return value ? 'true' : 'false';
+    }
+
+    return String(value).trim();
+  }
+
+  private createTemporaryPhotoPreview(file: File): string {
+    this.clearTemporaryPhotoPreview();
+    this.temporaryPhotoPreviewUrl = URL.createObjectURL(file);
+
+    return this.temporaryPhotoPreviewUrl;
+  }
+
+  private clearTemporaryPhotoPreview(): void {
+    if (this.temporaryPhotoPreviewUrl) {
+      URL.revokeObjectURL(this.temporaryPhotoPreviewUrl);
+      this.temporaryPhotoPreviewUrl = null;
+    }
+  }
+}
+
+interface EmployeeFormVm {
+  mode: 'create' | 'edit';
+  employeeId: number | null;
+  provinces: Province[];
+  sectionTitle: string;
+  loadError: string | null;
 }

@@ -14,9 +14,9 @@ import {
   standalone: true,
   imports: [NgIf],
   template: `
-    <div class="invalid-feedback d-block" *ngIf="error() as message">{{ message }}</div>
-    <div class="valid-feedback d-block" *ngIf="!error() && success() as message">✓ {{ message }}</div>
-    <small class="form-text text-muted d-block" *ngIf="!error() && !success() && hint() as message">
+    <div class="invalid-feedback d-block app-field-feedback" *ngIf="error() as message">{{ message }}</div>
+    <div class="valid-feedback d-block app-field-feedback" *ngIf="!error() && success() as message">✓ {{ message }}</div>
+    <small class="form-text text-muted d-block app-field-feedback app-field-feedback--hint" *ngIf="!error() && !success() && hint() as message">
       {{ message }}
     </small>
   `,

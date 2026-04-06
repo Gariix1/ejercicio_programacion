@@ -18,14 +18,16 @@ backend/Homestead.yaml
 backend/bootstrap/cache/*
 backend/public/build/
 backend/public/hot
-backend/public/storage
+backend/public/storage/
+backend/public/uploads/
 backend/storage/*.key
 backend/storage/pail
-backend/storage/framework/cache/data/*
-backend/storage/framework/sessions/*
-backend/storage/framework/testing/*
-backend/storage/framework/views/*
-backend/storage/logs/*
+backend/storage/framework/cache/
+backend/storage/framework/sessions/
+backend/storage/framework/testing/
+backend/storage/framework/views/
+backend/storage/logs/
+backend/storage/uploads/
 backend/database/*.sqlite*
 
 # Frontend / Node / Angular

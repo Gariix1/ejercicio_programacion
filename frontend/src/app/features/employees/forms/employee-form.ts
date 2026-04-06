@@ -1,41 +1,138 @@
-import { AbstractControl, FormBuilder, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  ValidationErrors,
+  ValidatorFn,
+  Validators,
+} from '@angular/forms';
 import { Employee, EmployeeUpsertPayload } from '../models/employee.model';
 
 export type EmployeeFormTab = 'personal' | 'labor';
 
-export function buildEmployeeForm(formBuilder: FormBuilder) {
-  return formBuilder.group<any>(
+export interface EmployeeFormValue {
+  codigo_empleado: string;
+  nombres: string;
+  apellidos: string;
+  cedula: string;
+  telefono: string;
+  direccion: string;
+  fecha_nacimiento: string;
+  email: string;
+  fotografia: string;
+  observaciones_personales: string;
+  fecha_ingreso: string;
+  cargo: string;
+  departamento: string;
+  sueldo: number | null;
+  jornada_parcial: boolean;
+  observaciones_laborales: string;
+  provincia_personal_id: number | null;
+  provincia_laboral_id: number | null;
+  estado_codigo: number;
+  estado_nombre: string;
+}
+
+export type EmployeeFormControls = {
+  [Field in keyof EmployeeFormValue]: FormControl<EmployeeFormValue[Field]>;
+};
+
+export type EmployeeFormGroup = FormGroup<EmployeeFormControls>;
+
+export function createEmployeeFormValue(): EmployeeFormValue {
+  return {
+    codigo_empleado: '',
+    nombres: '',
+    apellidos: '',
+    cedula: '',
+    telefono: '',
+    direccion: '',
+    fecha_nacimiento: '',
+    email: '',
+    fotografia: '',
+    observaciones_personales: '',
+    fecha_ingreso: '',
+    cargo: '',
+    departamento: '',
+    sueldo: 0,
+    jornada_parcial: false,
+    observaciones_laborales: '',
+    provincia_personal_id: null,
+    provincia_laboral_id: null,
+    estado_codigo: 1,
+    estado_nombre: 'VIGENTE',
+  };
+}
+
+export function buildEmployeeForm(formBuilder: FormBuilder): EmployeeFormGroup {
+  const defaults = createEmployeeFormValue();
+
+  return formBuilder.group<EmployeeFormControls>(
     {
-      codigo_empleado: ['', [
+      codigo_empleado: formBuilder.nonNullable.control(defaults.codigo_empleado, [
         Validators.required,
         Validators.maxLength(5),
         Validators.minLength(5),
         Validators.pattern(/^[A-Za-z0-9]{5}$/),
-      ]],
-      nombres: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-      apellidos: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-      cedula: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
-      telefono: ['', [Validators.pattern(/^\d{7,15}$/)]],
-      direccion: ['', [Validators.maxLength(255), Validators.minLength(5)]],
-      fecha_nacimiento: ['', [Validators.required]],
-      email: ['', [
+      ]),
+      nombres: formBuilder.nonNullable.control(defaults.nombres, [
+        Validators.required,
+        Validators.minLength(2),
+        Validators.maxLength(100),
+      ]),
+      apellidos: formBuilder.nonNullable.control(defaults.apellidos, [
+        Validators.required,
+        Validators.minLength(2),
+        Validators.maxLength(100),
+      ]),
+      cedula: formBuilder.nonNullable.control(defaults.cedula, [
+        Validators.required,
+        Validators.pattern(/^\d{10}$/),
+      ]),
+      telefono: formBuilder.nonNullable.control(defaults.telefono, [
+        Validators.pattern(/^\d{7,15}$/),
+      ]),
+      direccion: formBuilder.nonNullable.control(defaults.direccion, [
+        Validators.maxLength(255),
+        Validators.minLength(5),
+      ]),
+      fecha_nacimiento: formBuilder.nonNullable.control(defaults.fecha_nacimiento, [Validators.required]),
+      email: formBuilder.nonNullable.control(defaults.email, [
         Validators.required,
         Validators.email,
         Validators.maxLength(150),
         Validators.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/),
-      ]],
-      fotografia: [''],
-      observaciones_personales: [''],
-      fecha_ingreso: ['', [Validators.required]],
-      cargo: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-      departamento: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-      sueldo: [0, [Validators.required, Validators.min(0.01)]],
-      jornada_parcial: [false, [Validators.required]],
-      observaciones_laborales: [''],
-      provincia_personal_id: [null, [Validators.required]],
-      provincia_laboral_id: [null, [Validators.required]],
-      estado_codigo: [1, [Validators.required]],
-      estado_nombre: ['VIGENTE', [Validators.required]],
+      ]),
+      fotografia: formBuilder.nonNullable.control(defaults.fotografia),
+      observaciones_personales: formBuilder.nonNullable.control(defaults.observaciones_personales),
+      fecha_ingreso: formBuilder.nonNullable.control(defaults.fecha_ingreso, [Validators.required]),
+      cargo: formBuilder.nonNullable.control(defaults.cargo, [
+        Validators.required,
+        Validators.minLength(2),
+        Validators.maxLength(100),
+      ]),
+      departamento: formBuilder.nonNullable.control(defaults.departamento, [
+        Validators.required,
+        Validators.minLength(2),
+        Validators.maxLength(100),
+      ]),
+      sueldo: formBuilder.control<EmployeeFormValue['sueldo']>(defaults.sueldo, [
+        Validators.required,
+        Validators.min(0.01),
+      ]),
+      jornada_parcial: formBuilder.nonNullable.control(defaults.jornada_parcial, [Validators.required]),
+      observaciones_laborales: formBuilder.nonNullable.control(defaults.observaciones_laborales),
+      provincia_personal_id: formBuilder.control<EmployeeFormValue['provincia_personal_id']>(
+        defaults.provincia_personal_id,
+        [Validators.required],
+      ),
+      provincia_laboral_id: formBuilder.control<EmployeeFormValue['provincia_laboral_id']>(
+        defaults.provincia_laboral_id,
+        [Validators.required],
+      ),
+      estado_codigo: formBuilder.nonNullable.control(defaults.estado_codigo, [Validators.required]),
+      estado_nombre: formBuilder.nonNullable.control(defaults.estado_nombre, [Validators.required]),
     },
     {
       validators: [employeeDatesValidator()],
@@ -43,7 +140,11 @@ export function buildEmployeeForm(formBuilder: FormBuilder) {
   );
 }
 
-export function patchEmployeeForm(form: ReturnType<typeof buildEmployeeForm>, employee: Employee): void {
+export function resetEmployeeForm(form: EmployeeFormGroup): void {
+  form.reset(createEmployeeFormValue());
+}
+
+export function patchEmployeeForm(form: EmployeeFormGroup, employee: Employee): void {
   form.patchValue({
     codigo_empleado: employee.codigo_empleado,
     nombres: employee.nombres,
@@ -68,7 +169,15 @@ export function patchEmployeeForm(form: ReturnType<typeof buildEmployeeForm>, em
   });
 }
 
-export function mapEmployeeFormToPayload(formValue: any): EmployeeUpsertPayload {
+export function syncEmployeeStatusLabel(form: EmployeeFormGroup): void {
+  const value = Number(form.controls.estado_codigo.value ?? 1);
+
+  form.patchValue({
+    estado_nombre: value === 9 ? 'RETIRADO' : 'VIGENTE',
+  });
+}
+
+export function mapEmployeeFormToPayload(formValue: EmployeeFormValue): EmployeeUpsertPayload {
   const estadoCodigo = Number(formValue.estado_codigo);
 
   return {

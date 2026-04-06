@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class EmployeesApiTest extends TestCase
@@ -201,6 +203,40 @@ class EmployeesApiTest extends TestCase
             'jornada_parcial' => true,
             'codigo_empleado' => 'E0001',
         ]);
+    }
+
+    public function test_it_uploads_an_employee_photo(): void
+    {
+        Storage::fake('public');
+
+        $file = UploadedFile::fake()->createWithContent(
+            'empleado.png',
+            base64_decode(
+                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9sY4nS8AAAAASUVORK5CYII='
+            ),
+        );
+
+        $response = $this->post('/api/employees/photo', [
+            'fotografia' => $file,
+        ]);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('data.type', 'employee-uploads')
+            ->assertJsonPath('meta.message', 'Fotografia cargada correctamente.');
+
+        $path = $response->json('data.attributes.path');
+
+        $this->assertIsString($path);
+        $this->assertStringStartsWith('empleados/', $path);
+        Storage::disk('public')->assertExists($path);
+
+        $photoUrl = $response->json('data.attributes.url');
+
+        $photoResponse = $this->get($photoUrl);
+
+        $photoResponse->assertOk();
+        $this->assertStringStartsWith('image/', (string) $photoResponse->headers->get('content-type'));
     }
 
     public function test_it_deletes_an_employee(): void

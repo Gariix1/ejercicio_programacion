@@ -1,142 +1,193 @@
-import { DecimalPipe, NgFor, NgIf } from '@angular/common';
+import { NgFor, NgIf } from '@angular/common';
 import { Component, input, output } from '@angular/core';
-import { EmployeeSortField } from '../../employees/models/employee.model';
+import { HorizontalScrollShellComponent } from '../../../shared/horizontal-scroll-shell.component';
+import { OverflowTextComponent } from '../../../shared/overflow-text.component';
+import { Employee, EmployeeSortField } from '../../employees/models/employee.model';
 import { EmployeesReportResult } from '../models/report.model';
+import { DEFAULT_REPORT_COLUMNS, ReportColumn } from './report-table.columns';
 
 @Component({
   selector: 'app-report-table',
   standalone: true,
-  imports: [NgFor, NgIf, DecimalPipe],
+  imports: [NgFor, NgIf, OverflowTextComponent, HorizontalScrollShellComponent],
   template: `
-    <section class="table-card">
-      <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0 report-table">
+    <section class="app-table-panel app-table-panel--flush">
+      <app-horizontal-scroll-shell
+        mobileHint="Desliza la tabla para ver mas columnas →"
+        desktopHint="Desplaza horizontalmente la tabla para ver mas columnas →"
+      >
+        <table class="table table-sm table-hover align-middle mb-0 report-table">
+          <colgroup>
+            <col *ngFor="let column of columns(); trackBy: trackColumn" [class]="'col-' + column.width" />
+          </colgroup>
           <thead>
             <tr>
-              <th>
-                <button type="button" class="sort-button" (click)="toggleSort('nombres')">
-                  Nombre {{ sortIndicator('nombres') }}
+              <th
+                *ngFor="let column of columns(); trackBy: trackColumn"
+                class="border-0"
+                [class.text-center]="column.align === 'center'"
+              >
+                <button
+                  *ngIf="column.sortBy; else plainHeader"
+                  type="button"
+                  class="btn btn-link btn-sm p-0 w-100 sort-button"
+                  [class.text-left]="column.align !== 'center'"
+                  [class.text-center]="column.align === 'center'"
+                  [class.justify-content-center]="column.align === 'center'"
+                  (click)="toggleSort(column.sortBy)"
+                >
+                  {{ column.label }} {{ sortIndicator(column.sortBy) }}
                 </button>
-              </th>
-              <th>
-                <button type="button" class="sort-button" (click)="toggleSort('cedula')">
-                  Cedula {{ sortIndicator('cedula') }}
-                </button>
-              </th>
-              <th>
-                <button type="button" class="sort-button" (click)="toggleSort('codigo_empleado')">
-                  Codigo {{ sortIndicator('codigo_empleado') }}
-                </button>
-              </th>
-              <th>Direccion</th>
-              <th>Telefono</th>
-              <th>
-                <button type="button" class="sort-button" (click)="toggleSort('fecha_ingreso')">
-                  Fecha ingreso {{ sortIndicator('fecha_ingreso') }}
-                </button>
-              </th>
-              <th>
-                <button type="button" class="sort-button" (click)="toggleSort('cargo')">
-                  Cargo {{ sortIndicator('cargo') }}
-                </button>
-              </th>
-              <th>
-                <button type="button" class="sort-button" (click)="toggleSort('departamento')">
-                  Departamento {{ sortIndicator('departamento') }}
-                </button>
-              </th>
-              <th>
-                <button type="button" class="sort-button" (click)="toggleSort('sueldo')">
-                  Sueldo {{ sortIndicator('sueldo') }}
-                </button>
-              </th>
-              <th>Jornada</th>
-              <th>
-                <button type="button" class="sort-button" (click)="toggleSort('estado_nombre')">
-                  Estado {{ sortIndicator('estado_nombre') }}
-                </button>
-              </th>
-              <th>
-                <button type="button" class="sort-button" (click)="toggleSort('provincia_laboral_nombre')">
-                  Provincia {{ sortIndicator('provincia_laboral_nombre') }}
-                </button>
-              </th>
-              <th>
-                <button type="button" class="sort-button" (click)="toggleSort('email')">
-                  Email {{ sortIndicator('email') }}
-                </button>
+
+                <ng-template #plainHeader>
+                  <span
+                    class="d-inline-flex w-100"
+                    [class.justify-content-center]="column.align === 'center'"
+                  >
+                    {{ column.label }}
+                  </span>
+                </ng-template>
               </th>
             </tr>
           </thead>
 
           <tbody>
             <tr *ngFor="let employee of result().items">
-              <td>{{ employee.nombres }} {{ employee.apellidos }}</td>
-              <td>{{ employee.cedula }}</td>
-              <td>{{ employee.codigo_empleado }}</td>
-              <td>{{ employee.direccion || '-' }}</td>
-              <td>{{ employee.telefono || '-' }}</td>
-              <td>{{ employee.fecha_ingreso }}</td>
-              <td>{{ employee.cargo }}</td>
-              <td>{{ employee.departamento }}</td>
-              <td>{{ employee.sueldo | number:'1.2-2' }}</td>
-              <td>{{ employee.jornada_parcial_label }}</td>
-              <td>{{ employee.estado_nombre }}</td>
-              <td>{{ employee.provincia_laboral_nombre || employee.provincia_personal_nombre || '-' }}</td>
-              <td>{{ employee.email }}</td>
+              <td
+                *ngFor="let column of columns(); trackBy: trackColumn"
+                [class.cell-name]="column.cellClass === 'cell-name'"
+                [class.text-center]="column.align === 'center'"
+                [class.text-nowrap]="column.cellType !== 'overflow'"
+              >
+                <app-overflow-text
+                  *ngIf="column.cellType === 'overflow'; else plainCell"
+                  [value]="renderCell(employee, column)"
+                ></app-overflow-text>
+
+                <ng-template #plainCell>
+                  {{ renderCell(employee, column) }}
+                </ng-template>
+              </td>
             </tr>
 
             <tr *ngIf="result().items.length === 0">
-              <td class="text-center text-muted py-4" colspan="13">
+              <td class="text-center text-muted py-4" [attr.colspan]="columns().length">
                 No hay empleados para mostrar con los criterios actuales.
               </td>
             </tr>
           </tbody>
         </table>
-      </div>
+      </app-horizontal-scroll-shell>
     </section>
   `,
   styles: [`
-    .table-card {
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.88);
+    :host {
+      --report-table-min-width: 1440px;
+      --report-col-compact: 96px;
+      --report-col-short: 112px;
+      --report-col-date: 132px;
+      --report-col-standard: 136px;
+      --report-col-wide: 220px;
+      --report-col-xwide: 200px;
     }
 
     .report-table {
-      font-size: 0.8rem;
+      width: 100%;
+      min-width: var(--report-table-min-width);
+      font-size: 0.76rem;
+      table-layout: fixed;
+      border-collapse: separate;
+      border-spacing: 0;
     }
 
     .report-table th,
     .report-table td {
-      min-width: 120px;
-      white-space: nowrap;
       vertical-align: middle;
+      padding: 0.7rem 0.62rem;
+      border-top-color: rgba(73, 44, 24, 0.09);
+      overflow: hidden;
+      background-clip: padding-box;
+      position: relative;
     }
 
     .report-table thead th {
+      padding-top: 0.75rem;
+      padding-bottom: 0.75rem;
       background: #74a8d5;
       color: white;
       border-bottom: none;
-      font-size: 0.72rem;
+      font-size: 0.69rem;
       text-transform: uppercase;
       letter-spacing: 0.04em;
+    }
+
+    .report-table tbody td {
+      color: #2c2925;
+      line-height: 1.35;
+    }
+
+    .report-table thead th:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 16%;
+      bottom: 16%;
+      right: 0;
+      width: 1px;
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    .report-table tbody td:not(:last-child) {
+      box-shadow: inset -1px 0 0 rgba(103, 86, 67, 0.08);
+    }
+
+    .report-table tbody tr:first-child td {
+      border-top-color: rgba(73, 44, 24, 0.11);
+    }
+
+    .report-table tbody tr {
+      min-height: 54px;
+    }
+
+    .report-table tbody tr:hover td:not(:last-child) {
+      box-shadow: inset -1px 0 0 rgba(103, 86, 67, 0.1);
+    }
+
+    .report-table col.col-compact { width: var(--report-col-compact); }
+    .report-table col.col-short { width: var(--report-col-short); }
+    .report-table col.col-date { width: var(--report-col-date); }
+    .report-table col.col-standard { width: var(--report-col-standard); }
+    .report-table col.col-wide { width: var(--report-col-wide); }
+    .report-table col.col-xwide { width: var(--report-col-xwide); }
+
+    .cell-name {
+      font-weight: 600;
     }
 
     .sort-button {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      width: 100%;
-      padding: 0;
-      border: 0;
-      background: transparent;
       color: inherit;
-      font: inherit;
+      font-size: inherit;
+      text-decoration: none;
       text-transform: inherit;
       letter-spacing: inherit;
-      cursor: pointer;
+    }
+
+    .sort-button:hover,
+    .sort-button:focus {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    @media (max-width: 992px) {
+      :host {
+        --report-table-min-width: 1320px;
+      }
+
+      .report-table {
+        min-width: var(--report-table-min-width);
+      }
     }
   `],
 })
@@ -144,11 +195,11 @@ export class ReportTableComponent {
   readonly result = input.required<EmployeesReportResult>();
   readonly sortBy = input<EmployeeSortField>('nombres');
   readonly sortDir = input<'asc' | 'desc'>('asc');
+  readonly columns = input<ReportColumn[]>(DEFAULT_REPORT_COLUMNS);
   readonly sortChange = output<{ sortBy: EmployeeSortField; sortDir: 'asc' | 'desc' }>();
 
   protected toggleSort(sortBy: EmployeeSortField): void {
     const sortDir = this.sortBy() === sortBy && this.sortDir() === 'asc' ? 'desc' : 'asc';
-
     this.sortChange.emit({ sortBy, sortDir });
   }
 
@@ -158,5 +209,13 @@ export class ReportTableComponent {
     }
 
     return this.sortDir() === 'asc' ? '↑' : '↓';
+  }
+
+  protected trackColumn(_: number, column: ReportColumn): string {
+    return column.key;
+  }
+
+  protected renderCell(employee: Employee, column: ReportColumn): string {
+    return column.value(employee);
   }
 }

@@ -2,88 +2,153 @@
 
 ## 1. Backend orientado a API
 
-El backend se organiza como una API REST en Laravel.
+El backend se organiza como API REST en Laravel.
 Las rutas viven en `backend/routes/api.php` y el flujo principal sigue el patron:
 
 `Route -> Controller -> Request -> Service -> Repository -> Database`
 
-Se adopto Laravel para ganar:
+Se eligio Laravel para ganar:
 
-- validacion nativa con `FormRequest`
-- manejo consistente de configuracion, errores y CORS
-- mejor base de mantenimiento y crecimiento
-- convenciones claras para una entrega mas profesional
-- una base mas solida para exponer una API con contrato uniforme
+- validacion con `FormRequest`
+- contrato de errores mas consistente
+- mejor base para modularidad y crecimiento
+- testing mas simple del dominio principal
 
-## 2. MVC modular
+## 2. Modulos por dominio
 
-Cada modulo encapsula su propia logica y evita carpetas globales de negocio:
+Cada dominio encapsula su logica:
 
-- `Employees`: alta, consulta, actualizacion y validacion de empleados.
-- `Provinces`: catalogo maestro de provincias.
-- `Reports`: reportes y agregados de empleados.
+- `Employees`: alta, consulta, actualizacion, eliminacion, validacion y carga de fotografia
+- `Provinces`: catalogo maestro
+- `Reports`: vistas agregadas y resumenes operativos
 
-Esto permite crecer por dominio sin mezclar responsabilidades.
+Esto evita mezclar reglas de negocio en carpetas globales.
 
-Estructura actual del backend:
-
-- `app/Modules/Employees/{Controllers,DTOs,Models,Repositories,Requests,Resources,Services}`
-- `app/Modules/Provinces/{Controllers,Models,Repositories,Resources,Services}`
-- `app/Modules/Reports/{Controllers,Repositories,Services}`
-
-## 3. Contrato de API uniforme
-
-La API toma varias de sus ideas para elevar la consistencia del contrato.
+## 3. Contrato uniforme de API
 
 Decisiones adoptadas:
 
 - respuestas exitosas con `data`, `meta` y `links`
 - recursos con `type`, `id`, `attributes` y `relationships`
-- errores con `errors[]` y campos `status`, `code`, `title`, `detail` y `source`
-- paginacion con `meta.pagination` y links navegables
-- soporte para `PUT` y `PATCH` diferenciando actualizacion completa y parcial
+- errores con `errors[]`, `status`, `code`, `title`, `detail` y `source`
+- paginacion con `meta.pagination`
+- soporte para `PUT` y `PATCH`
 
 Motivo:
 
-- mejorar claridad para frontend
-- estandarizar pruebas y manejo de errores
-- dar una API mas madura sin meter complejidad innecesaria
+- reducir logica especial en frontend
+- estandarizar pruebas
+- dar un contrato mas maduro sin meter JSON:API completo
 
-## 4. Frontend por features
+## 4. Frontend por features y shared components
 
-El frontend se separa por `core`, `shared` y `features`.
-Cada feature contiene sus paginas, componentes, modelos y capa `data-access` para consumir la API.
+El frontend se separa por:
 
-## 5. Base de datos fuera del backend
+- `core`
+- `shared`
+- `features`
+
+Cada feature contiene paginas, componentes, modelos y `data-access`.
+Los patrones repetidos se movieron a `shared`, por ejemplo:
+
+- botones
+- banners
+- navbar
+- page headers
+- action bars
+- paginacion
+- modales de confirmacion y feedback
+- modal de exportacion
+
+Motivo:
+
+- menos repeticion
+- mas consistencia visual
+- mantenimiento mas simple
+
+## 5. Bootstrap como base, CSS propio solo donde aporta
+
+Se mantuvo Bootstrap 4 como base para layout, formularios y utilidades.
+Encima de eso se agrego CSS propio para:
+
+- identidad visual
+- glassmorphism
+- navbar custom
+- tabs del formulario
+- tablas y pills del sistema
+- microanimaciones y estados
+
+Tambien se vendorizo una copia local minima de Bootstrap en `frontend/src/vendor` sin la regla `:lang` que disparaba warnings de build.
+
+Motivo:
+
+- conservar productividad y utilidades de Bootstrap
+- evitar sobreescribir el framework completo
+- quitar warnings del build sin romper el look existente
+
+## 6. Reportes como seccion escalable
+
+La navegacion separa:
+
+- `Modulos`
+- `Reportes`
+
+`/reports` funciona como centro de reportes y hoy contiene:
+
+- reporte de empleados disponible
+- asistencia y nomina como proximos reportes
+
+Motivo:
+
+- dejar la arquitectura lista para crecer sin rehacer rutas ni navbar
+
+## 7. Exportacion reusable
+
+La exportacion se implemento con un modal shared y un servicio reusable.
+
+Formatos actuales:
+
+- `PDF`
+- `CSV`
+- `JSON`
+
+Motivo:
+
+- reutilizar el flujo en futuros reportes
+- unificar preview, feedback y seleccion de formato
+
+## 8. Feedback de procesos y confirmaciones
+
+Se definieron modales shared para:
+
+- procesos en carga, exito y error
+- confirmacion de descarte
+- confirmacion de actualizacion
+
+Motivo:
+
+- evitar perdida accidental de cambios
+- dar feedback claro en acciones lentas o importantes
+
+## 9. Fotografias servidas por la API
+
+Las fotografias se guardan en `storage/uploads` y se exponen mediante:
+
+- `POST /api/employees/photo`
+- `GET /api/employee-photos/{path}`
+
+Motivo:
+
+- no depender de symlinks o configuraciones manuales del entorno
+- tener una URL estable para preview y edicion
+- mantener control del acceso y de la generacion de rutas
+
+## 10. Base de datos versionada fuera del backend
 
 `database/schema.sql` y `database/seed.sql` permanecen en la raiz para mantener separados:
 
-- artefactos de infraestructura y datos
-- codigo de backend
-- codigo de frontend
+- artefactos de datos
+- backend
+- frontend
 
-## 6. Modelo de datos versionado
-
-El modelo versionado se alinea con la base real usada por el backend Laravel.
-
-Tablas principales:
-
-- `provincias`
-- `empleados`
-
-Campos relevantes de `empleados`:
-
-- identificacion: `codigo_empleado`, `nombres`, `apellidos`, `cedula`
-- contacto: `telefono`, `direccion`, `email`
-- personales: `fecha_nacimiento`, `fotografia`, `observaciones_personales`
-- laborales: `fecha_ingreso`, `cargo`, `departamento`, `sueldo`, `jornada_parcial`, `observaciones_laborales`
-- relaciones: `provincia_personal_id`, `provincia_laboral_id`
-- estado: `estado_codigo`, `estado_nombre`
-
-Restricciones mantenidas:
-
-- `UNIQUE` en `codigo_empleado`
-- `UNIQUE` en `cedula`
-- `FOREIGN KEY` hacia `provincias`
-- `CHECK` de coherencia entre `estado_codigo` y `estado_nombre`
-- `utf8mb4` en todas las tablas
+Esto facilita la lectura del reto y deja mas claro que el modelo de datos es un insumo compartido del proyecto completo.

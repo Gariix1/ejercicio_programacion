@@ -7,7 +7,6 @@ namespace App\Modules\Employees\Resources;
 use App\Modules\Employees\Enums\EmployeeStatus;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-
 final class EmployeeResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -27,6 +26,7 @@ final class EmployeeResource extends JsonResource
                 'fecha_nacimiento' => (string) $this->fecha_nacimiento,
                 'email' => $this->email,
                 'fotografia' => $this->fotografia,
+                'fotografia_url' => $this->resolvePhotoUrl(),
                 'observaciones_personales' => $this->observaciones_personales,
                 'fecha_ingreso' => (string) $this->fecha_ingreso,
                 'cargo' => $this->cargo,
@@ -76,5 +76,16 @@ final class EmployeeResource extends JsonResource
                 'self' => url('/api/employees/' . $this->id),
             ],
         ];
+    }
+
+    private function resolvePhotoUrl(): ?string
+    {
+        if (!is_string($this->fotografia) || trim($this->fotografia) === '') {
+            return null;
+        }
+
+        $segments = array_map('rawurlencode', explode('/', ltrim($this->fotografia, '/')));
+
+        return url('/api/employee-photos/' . implode('/', $segments));
     }
 }
