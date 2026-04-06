@@ -3,11 +3,12 @@ import { Inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
 import { API_BASE_URL } from '../../../core/api.config';
 import { ApiDocument, ApiResource } from '../../../core/api.types';
+import { buildListQueryParams } from '../../../shared/query-utils';
 import { EmployeeListQuery } from '../../employees/models/employee.model';
 import {
   EmployeeApiResource,
   mapEmployeeResource,
-} from '../../employees/data-access/employees-api.service';
+} from '../../employees/models/employee.resource';
 import {
   EmployeeReportSummary,
   EmployeeReportSummaryResult,
@@ -31,27 +32,7 @@ export class ReportsApiService {
   ) {}
 
   listEmployees(query: EmployeeListQuery = {}): Observable<EmployeesReportResult> {
-    const params = new URLSearchParams();
-
-    if (query.search) {
-      params.set('search', query.search);
-    }
-
-    if (query.sortBy) {
-      params.set('sort_by', query.sortBy);
-    }
-
-    if (query.sortDir) {
-      params.set('sort_dir', query.sortDir);
-    }
-
-    if (query.page) {
-      params.set('page', String(query.page));
-    }
-
-    if (query.perPage) {
-      params.set('per_page', String(query.perPage));
-    }
+    const params = buildListQueryParams(query);
 
     const url = params.size > 0
       ? `${this.apiBaseUrl}/reports/employees?${params.toString()}`

@@ -17,19 +17,13 @@ import { TopNavComponent } from './shared/top-nav.component';
   `,
   styles: [`
     .app-shell {
-      max-width: 1680px;
+      width: min(100%, var(--shell-max));
       margin: 0 auto;
-      padding: 24px 20px 48px;
+      padding: var(--page-padding-y) var(--page-padding-x) 48px;
     }
 
     .content {
-      padding-top: 24px;
-    }
-
-    @media (max-width: 640px) {
-      .app-shell {
-        padding-inline: 14px;
-      }
+      padding-top: clamp(18px, 2vw, 24px);
     }
   `],
 })

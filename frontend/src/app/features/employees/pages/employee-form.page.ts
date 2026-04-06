@@ -2,16 +2,22 @@ import { AsyncPipe, NgIf } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, combineLatest, map, of, shareReplay, switchMap, tap } from 'rxjs';
 import { ActionBarComponent } from '../../../shared/action-bar.component';
+import { ModuleHeaderComponent } from '../../../shared/module-header.component';
+import { StatusBannerComponent } from '../../../shared/status-banner.component';
+import { UiButtonComponent } from '../../../shared/ui-button.component';
 import { ProvincesApiService } from '../../provinces/data-access/provinces-api.service';
+import { Province } from '../../provinces/models/province.model';
 import { EmployeesApiService } from '../data-access/employees-api.service';
 import {
   buildEmployeeForm,
   EmployeeFormTab,
+  EmployeeFormGroup,
   mapEmployeeFormToPayload,
   patchEmployeeForm,
+  resetEmployeeForm,
 } from '../forms/employee-form';
 import {
   EmployeeFormField,
@@ -29,8 +35,10 @@ import { EmployeePersonalFormComponent } from '../components/employee-personal-f
     AsyncPipe,
     NgIf,
     ReactiveFormsModule,
-    RouterLink,
     ActionBarComponent,
+    ModuleHeaderComponent,
+    StatusBannerComponent,
+    UiButtonComponent,
     EmployeeFormShellComponent,
     EmployeePersonalFormComponent,
     EmployeeLaborFormComponent,
@@ -38,96 +46,123 @@ import { EmployeePersonalFormComponent } from '../components/employee-personal-f
   template: `
     <section class="screen">
       <ng-container *ngIf="vm$ | async as vm">
-        <app-employee-form-shell
-          [sectionTitle]="vm.sectionTitle"
-          [activeTab]="activeTab"
-          (tabChange)="onTabChange($event)"
-        >
-          <div class="status-banner status-banner--error mb-3" *ngIf="submitError">
-            {{ submitError }}
+        <ng-container *ngIf="!vm.loadError; else loadErrorState">
+          <app-employee-form-shell
+            [sectionTitle]="vm.sectionTitle"
+            [activeTab]="activeTab"
+            [canAccessLaborTab]="canAccessLaborTab"
+            (tabChange)="onTabChange($event)"
+          >
+            <app-status-banner variant="error" class="mb-3" *ngIf="submitError">
+              {{ submitError }}
+            </app-status-banner>
+
+            <app-status-banner variant="info" class="mb-3" *ngIf="activeTab === 'personal'">
+              Completa los datos personales obligatorios antes de continuar a la ficha laboral.
+            </app-status-banner>
+
+            <form [formGroup]="form" (ngSubmit)="onPrimaryAction(vm.mode, vm.employeeId)">
+              <app-employee-personal-form
+                *ngIf="activeTab === 'personal'"
+                [form]="form"
+                [provinces]="vm.provinces"
+                [fieldErrors]="fieldErrors"
+              ></app-employee-personal-form>
+
+              <app-employee-labor-form
+                *ngIf="activeTab === 'labor'"
+                [form]="form"
+                [provinces]="vm.provinces"
+                [fieldErrors]="fieldErrors"
+              ></app-employee-labor-form>
+            </form>
+
+            <app-action-bar form-actions>
+              <app-ui-button
+                variant="success"
+                [disabled]="isSubmitting"
+                [wide]="true"
+                (click)="onPrimaryAction(vm.mode, vm.employeeId)"
+              >
+                <span
+                  *ngIf="isSubmitting"
+                  class="spinner-border spinner-border-sm me-2"
+                  role="status"
+                  aria-hidden="true"
+                ></span>
+                {{
+                  isSubmitting
+                    ? 'Guardando...'
+                    : activeTab === 'personal'
+                      ? 'Continuar'
+                      : vm.mode === 'create'
+                        ? 'Guardar'
+                        : 'Actualizar'
+                }}
+              </app-ui-button>
+
+              <app-ui-button variant="outline-secondary" routerLink="/employees">
+                {{ vm.mode === 'create' ? 'Cancelar' : 'Volver al listado' }}
+              </app-ui-button>
+            </app-action-bar>
+          </app-employee-form-shell>
+        </ng-container>
+
+        <ng-template #loadErrorState>
+          <div class="screen-stack">
+            <app-module-header
+              moduleTitle="Empleados"
+              [sectionTitle]="vm.sectionTitle"
+            ></app-module-header>
+
+            <section class="load-error-card">
+              <app-status-banner variant="error">
+                {{ vm.loadError }}
+              </app-status-banner>
+
+              <app-action-bar class="mt-3">
+                <app-ui-button variant="outline-primary" routerLink="/employees">Volver al modulo</app-ui-button>
+              </app-action-bar>
+            </section>
           </div>
-
-          <div class="status-banner status-banner--info mb-3" *ngIf="activeTab === 'personal'">
-            Completa los datos personales obligatorios antes de continuar a la ficha laboral.
-          </div>
-
-          <form [formGroup]="form" (ngSubmit)="onPrimaryAction(vm.mode, vm.employeeId)">
-            <app-employee-personal-form
-              *ngIf="activeTab === 'personal'"
-              [form]="form"
-              [provinces]="vm.provinces"
-              [fieldErrors]="fieldErrors"
-            ></app-employee-personal-form>
-
-            <app-employee-labor-form
-              *ngIf="activeTab === 'labor'"
-              [form]="form"
-              [provinces]="vm.provinces"
-              [fieldErrors]="fieldErrors"
-            ></app-employee-labor-form>
-          </form>
-
-          <app-action-bar form-actions>
-            <button
-              class="btn btn-success"
-              type="button"
-              [disabled]="isSubmitting"
-              (click)="onPrimaryAction(vm.mode, vm.employeeId)"
-            >
-              <span
-                *ngIf="isSubmitting"
-                class="spinner-border spinner-border-sm me-2"
-                role="status"
-                aria-hidden="true"
-              ></span>
-              {{
-                isSubmitting
-                  ? 'Guardando...'
-                  : activeTab === 'personal'
-                    ? 'Continuar'
-                    : vm.mode === 'create'
-                      ? 'Guardar'
-                      : 'Actualizar'
-              }}
-            </button>
-
-            <a class="btn btn-warning text-white" routerLink="/reports">Ver reporte</a>
-            <a class="btn btn-outline-secondary" routerLink="/employees">
-              {{ vm.mode === 'create' ? 'Cancelar' : 'Volver al listado' }}
-            </a>
-          </app-action-bar>
-        </app-employee-form-shell>
+        </ng-template>
       </ng-container>
     </section>
   `,
   styles: [`
     .screen {
-      width: min(100%, 760px);
+      width: min(100%, 920px);
       margin: 0 auto;
+      display: grid;
+      gap: 16px;
     }
 
-    .status-banner {
-      padding: 12px 14px;
-      border-radius: 10px;
-      border: 1px solid transparent;
-      font-size: 0.92rem;
+    .screen-stack {
+      display: grid;
+      gap: 14px;
     }
 
-    .status-banner--info {
-      border-color: rgba(49, 119, 165, 0.18);
-      background: rgba(197, 228, 247, 0.55);
-      color: #255c80;
+    .load-error-card {
+      padding: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: 0 16px 32px rgba(73, 44, 24, 0.04);
     }
 
-    .status-banner--error {
-      border-color: rgba(181, 56, 56, 0.2);
-      background: rgba(239, 211, 211, 0.7);
-      color: #8c1f1f;
+    @media (max-width: 640px) {
+      .screen {
+        gap: 14px;
+      }
+
+      .load-error-card {
+        padding: 16px;
+      }
     }
   `],
 })
 export class EmployeeFormPageComponent {
-  protected readonly form = buildEmployeeForm(this.formBuilder);
+  protected readonly form: EmployeeFormGroup = buildEmployeeForm(this.formBuilder);
   protected activeTab: EmployeeFormTab = 'personal';
   protected isSubmitting = false;
   protected submitError: string | null = null;
@@ -144,35 +179,31 @@ export class EmployeeFormPageComponent {
         return id ? Number(id) : null;
       }),
     ),
-    this.provincesApiService.list(),
   ]).pipe(
-    switchMap(([mode, employeeId, provinces]) => {
-      if (mode === 'edit' && employeeId !== null) {
-        return this.employeesApiService.findById(employeeId).pipe(
-          tap((employee) => patchEmployeeForm(this.form, employee)),
-          map(() => ({
-            mode,
-            employeeId,
-            provinces,
-            sectionTitle: 'Editar empleado',
-          })),
-        );
-      }
+    switchMap(([mode, employeeId]) =>
+      this.provincesApiService.list().pipe(
+        switchMap((provinces) => {
+          if (mode === 'edit' && employeeId !== null) {
+            return this.employeesApiService.findById(employeeId).pipe(
+              tap((employee) => this.prepareEditForm(employee)),
+              map(() => this.buildVm(mode, employeeId, provinces)),
+              catchError((error) => of(this.buildLoadErrorVm(mode, error, employeeId, provinces))),
+            );
+          }
 
-      return of({
-        mode,
-        employeeId,
-        provinces,
-        sectionTitle: 'Crear empleado nuevo',
-      });
-    }),
-    catchError(() =>
-      of({
-        mode: 'create' as const,
-        employeeId: null,
-        provinces: [],
-        sectionTitle: 'Crear empleado nuevo',
-      }),
+          if (mode === 'edit') {
+            return of(this.buildLoadErrorVm(mode, new Error('missing-id'), employeeId, provinces));
+          }
+
+          this.prepareCreateForm();
+
+          return of(this.buildVm(mode, employeeId, provinces));
+        }),
+        catchError((error) => of(this.buildLoadErrorVm(mode, error, employeeId, []))),
+      ),
+    ),
+    catchError((error) =>
+      of(this.buildLoadErrorVm('create', error, null, [])),
     ),
     shareReplay({ bufferSize: 1, refCount: true }),
   );
@@ -186,6 +217,12 @@ export class EmployeeFormPageComponent {
   ) {}
 
   protected onTabChange(tab: EmployeeFormTab): void {
+    if (tab === 'labor' && !this.canAccessLaborTab) {
+      this.markFieldsTouched(this.personalFields);
+
+      return;
+    }
+
     this.activeTab = tab;
   }
 
@@ -193,7 +230,7 @@ export class EmployeeFormPageComponent {
     this.clearSubmitState();
 
     if (this.activeTab === 'personal') {
-      if (this.hasInvalidFields(this.personalFields)) {
+      if (!this.canAccessLaborTab) {
         this.markFieldsTouched(this.personalFields);
 
         return;
@@ -287,4 +324,67 @@ export class EmployeeFormPageComponent {
     this.submitError = null;
     this.fieldErrors = {};
   }
+
+  protected get canAccessLaborTab(): boolean {
+    return !this.hasInvalidFields(this.personalFields) && !this.hasApiFieldErrors(this.personalFields);
+  }
+
+  private prepareCreateForm(): void {
+    resetEmployeeForm(this.form);
+    this.activeTab = 'personal';
+    this.clearSubmitState();
+  }
+
+  private prepareEditForm(employee: Parameters<typeof patchEmployeeForm>[1]): void {
+    patchEmployeeForm(this.form, employee);
+    this.activeTab = 'personal';
+    this.clearSubmitState();
+  }
+
+  private buildVm(
+    mode: 'create' | 'edit',
+    employeeId: number | null,
+    provinces: Province[],
+  ): EmployeeFormVm {
+    return {
+      mode,
+      employeeId,
+      provinces,
+      sectionTitle: mode === 'edit' ? 'Editar empleado' : 'Crear empleado nuevo',
+      loadError: null,
+    };
+  }
+
+  private buildLoadErrorVm(
+    mode: 'create' | 'edit',
+    error: unknown,
+    employeeId: number | null,
+    provinces: Province[],
+  ): EmployeeFormVm {
+    this.activeTab = 'personal';
+    this.clearSubmitState();
+
+    const responseError = error instanceof HttpErrorResponse ? error : null;
+    const loadError = mode === 'edit'
+      ? responseError?.status === 404
+        ? 'No encontramos el empleado que intentabas editar.'
+        : 'No pudimos cargar la ficha del empleado. Intenta nuevamente o vuelve al modulo.'
+      : 'No pudimos preparar el formulario del empleado. Intenta nuevamente.';
+
+    return {
+      mode,
+      employeeId,
+      provinces,
+      sectionTitle: mode === 'edit' ? 'Editar empleado' : 'Crear empleado nuevo',
+      loadError,
+    };
+  }
+}
+
+interface EmployeeFormVm {
+  mode: 'create' | 'edit';
+  employeeId: number | null;
+  provinces: Province[];
+  sectionTitle: string;
+  loadError: string | null;
 }
