@@ -10,5 +10,9 @@ export const REPORTS_ROUTES: Routes = [
   {
     path: 'employees',
     component: EmployeesReportPageComponent,
+    data: {
+      moduleBackLink: '/employees',
+      moduleBackLabel: 'Volver a empleados',
+    },
   },
 ];

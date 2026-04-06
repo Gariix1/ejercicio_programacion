@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { Component, input, output } from '@angular/core';
+import { Component, ElementRef, inject, input, output } from '@angular/core';
 import { EmployeeFormTab } from '../forms/employee-form';
 import { ModuleHeaderComponent } from '../../../shared/module-header.component';
 
@@ -8,41 +8,27 @@ import { ModuleHeaderComponent } from '../../../shared/module-header.component';
   standalone: true,
   imports: [NgClass, ModuleHeaderComponent],
   template: `
-    <section class="form-page">
+    <section class="form-page d-grid">
       <app-module-header
         moduleTitle="Empleados"
         [sectionTitle]="sectionTitle()"
       ></app-module-header>
 
-      <section class="workflow-card">
-        <div class="workflow-copy">
-          <strong>
-            {{
-              activeTab() === 'personal'
-                ? 'Datos personales'
-                : 'Asignacion laboral y condiciones del empleado'
-            }}
-          </strong>
-          <span class="workflow-description">
-            {{
-              activeTab() === 'personal'
-                ? 'Completa la informacion base antes de pasar a los datos laborales.'
-                : 'Completa la informacion de cargo, estado y condiciones del empleado.'
-            }}
-          </span>
-        </div>
-
-        <nav class="tabs" role="tablist" aria-label="Pasos del formulario">
+      <section class="tabs-region">
+        <nav class="tabs d-flex align-items-end" role="tablist" aria-label="Secciones del formulario">
           <button
             type="button"
             role="tab"
+            [id]="tabId('personal')"
             class="tab"
+            [attr.aria-controls]="panelId"
             [attr.aria-selected]="activeTab() === 'personal'"
+            [attr.tabindex]="activeTab() === 'personal' ? 0 : -1"
             [ngClass]="{ active: activeTab() === 'personal' }"
             (click)="tabChange.emit('personal')"
+            (keydown)="onTabKeydown($event, 'personal')"
           >
             <span class="tab-copy">
-              <span class="tab-step">Paso 1</span>
               <span class="tab-text">
                 <strong>Datos personales</strong>
                 <small>Identidad y contacto</small>
@@ -53,17 +39,16 @@ import { ModuleHeaderComponent } from '../../../shared/module-header.component';
           <button
             type="button"
             role="tab"
+            [id]="tabId('labor')"
             class="tab"
+            [attr.aria-controls]="panelId"
             [attr.aria-selected]="activeTab() === 'labor'"
-            [disabled]="!canAccessLaborTab() && activeTab() !== 'labor'"
-            [ngClass]="{
-              active: activeTab() === 'labor',
-              disabled: !canAccessLaborTab() && activeTab() !== 'labor'
-            }"
+            [attr.tabindex]="activeTab() === 'labor' ? 0 : -1"
+            [ngClass]="{ active: activeTab() === 'labor' }"
             (click)="tabChange.emit('labor')"
+            (keydown)="onTabKeydown($event, 'labor')"
           >
             <span class="tab-copy">
-              <span class="tab-step">Paso 2</span>
               <span class="tab-text">
                 <strong>Datos laborales</strong>
                 <small>Cargo y condiciones</small>
@@ -73,54 +58,42 @@ import { ModuleHeaderComponent } from '../../../shared/module-header.component';
         </nav>
       </section>
 
-      <section class="content-card">
+      <section
+        class="content-region"
+        role="tabpanel"
+        [id]="panelId"
+        [attr.aria-labelledby]="tabId(activeTab())"
+      >
         <ng-content></ng-content>
       </section>
 
-      <footer class="actions">
+      <footer class="actions d-flex justify-content-center flex-wrap">
         <ng-content select="[form-actions]"></ng-content>
       </footer>
     </section>
   `,
   styles: [`
-    .form-page {
-      display: grid;
-      gap: 14px;
+    .form-page { gap: 0; }
+
+    app-module-header {
+      display: block;
+      margin-bottom: 6px;
     }
 
-    .workflow-card {
-      display: grid;
-      gap: 10px;
+    .tabs-region {
+      position: relative;
+      z-index: 2;
+      margin-top: -2px;
+      margin-bottom: -1px;
       animation: workflowReveal 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
-    }
-
-    .workflow-copy {
-      display: grid;
-      gap: 2px;
-      padding-inline: 4px;
-    }
-
-    .workflow-copy strong {
-      font-size: var(--font-size-section-title);
-      line-height: var(--line-height-tight);
-      color: var(--text-strong);
-    }
-
-    .workflow-description {
-      color: var(--muted);
-      font-size: var(--font-size-caption);
-      line-height: 1.45;
     }
 
     .tabs {
       position: relative;
-      display: flex;
-      align-items: flex-end;
       gap: 0;
       overflow-x: auto;
       overflow-y: hidden;
       padding-inline: 0;
-      border-bottom: 1px solid rgba(103, 86, 67, 0.24);
       scrollbar-width: none;
     }
 
@@ -182,7 +155,7 @@ import { ModuleHeaderComponent } from '../../../shared/module-header.component';
       display: grid;
       gap: 2px;
       width: 100%;
-      padding: 12px 18px 11px;
+      padding: 10px 18px 9px;
       min-width: 0;
     }
 
@@ -190,13 +163,6 @@ import { ModuleHeaderComponent } from '../../../shared/module-header.component';
       display: grid;
       gap: 2px;
       min-width: 0;
-    }
-
-    .tab-step {
-      color: var(--text-soft);
-      font-size: var(--font-size-kicker);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
     }
 
     .tab-text strong {
@@ -224,10 +190,6 @@ import { ModuleHeaderComponent } from '../../../shared/module-header.component';
       background: linear-gradient(90deg, rgba(42, 124, 194, 0.78) 0%, rgba(42, 124, 194, 1) 100%);
     }
 
-    .tab.active .tab-step {
-      color: #2a7cc2;
-    }
-
     .tab.active .tab-text small {
       color: #5e86a7;
     }
@@ -236,26 +198,13 @@ import { ModuleHeaderComponent } from '../../../shared/module-header.component';
       animation: tabLift 220ms ease;
     }
 
-    .tab.disabled,
-    .tab:disabled {
-      opacity: 0.58;
-      cursor: not-allowed;
-    }
-
-    .content-card {
-      padding: 22px;
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.88);
-      box-shadow: 0 16px 32px rgba(73, 44, 24, 0.04);
+    .content-region {
+      margin-top: 0;
       animation: cardReveal 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
     }
 
     .actions {
-      padding-top: 4px;
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
+      padding-top: 10px;
       gap: 12px;
     }
 
@@ -266,16 +215,12 @@ import { ModuleHeaderComponent } from '../../../shared/module-header.component';
     }
 
     @media (max-width: 640px) {
-      .content-card {
-        padding: 16px;
-      }
-
       .tab {
         min-width: 170px;
       }
 
       .tab-copy {
-        padding: 11px 14px 10px;
+        padding: 9px 14px 8px;
       }
     }
 
@@ -317,8 +262,41 @@ import { ModuleHeaderComponent } from '../../../shared/module-header.component';
   `],
 })
 export class EmployeeFormShellComponent {
+  private readonly hostElement = inject<ElementRef<HTMLElement>>(ElementRef);
+
   readonly sectionTitle = input.required<string>();
   readonly activeTab = input.required<EmployeeFormTab>();
-  readonly canAccessLaborTab = input(true);
   readonly tabChange = output<EmployeeFormTab>();
+  protected readonly panelId = 'employee-form-tabpanel';
+
+  protected tabId(tab: EmployeeFormTab): string {
+    return `employee-form-tab-${tab}`;
+  }
+
+  protected onTabKeydown(event: KeyboardEvent, currentTab: EmployeeFormTab): void {
+    switch (event.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        event.preventDefault();
+        this.activateAndFocus(currentTab === 'personal' ? 'labor' : 'personal');
+        break;
+      case 'Home':
+        event.preventDefault();
+        this.activateAndFocus('personal');
+        break;
+      case 'End':
+        event.preventDefault();
+        this.activateAndFocus('labor');
+        break;
+    }
+  }
+
+  private activateAndFocus(tab: EmployeeFormTab): void {
+    this.tabChange.emit(tab);
+    queueMicrotask(() => {
+      this.hostElement.nativeElement.querySelector<HTMLButtonElement>(`#${this.tabId(tab)}`)?.focus();
+    });
+  }
 }

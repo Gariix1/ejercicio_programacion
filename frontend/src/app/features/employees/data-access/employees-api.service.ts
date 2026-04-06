@@ -8,6 +8,7 @@ import {
   Employee,
   EmployeeListQuery,
   EmployeeListResult,
+  EmployeePhotoUploadResult,
   EmployeeUpsertPayload,
 } from '../models/employee.model';
 import { EmployeeApiResource, mapEmployeeResource } from '../models/employee.resource';
@@ -66,5 +67,18 @@ export class EmployeesApiService {
     return this.http
       .delete<ApiDocument<EmployeeApiResource>>(`${this.apiBaseUrl}/employees/${id}`)
       .pipe(map((response) => mapEmployeeResource(response.data)));
+  }
+
+  uploadPhoto(file: File): Observable<EmployeePhotoUploadResult> {
+    const formData = new FormData();
+    formData.append('fotografia', file);
+
+    return this.http
+      .post<ApiDocument<{
+        type: string;
+        id: string;
+        attributes: EmployeePhotoUploadResult;
+      }>>(`${this.apiBaseUrl}/employees/photo`, formData)
+      .pipe(map((response) => response.data.attributes));
   }
 }

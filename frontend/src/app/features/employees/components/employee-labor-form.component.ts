@@ -16,14 +16,9 @@ import { EmployeeFormFieldComponent } from './employee-form-field.component';
   standalone: true,
   imports: [NgFor, ReactiveFormsModule, EmployeeFormFieldComponent],
   template: `
-    <div class="form-layout" [formGroup]="form()">
-      <div class="required-legend">
-        <span class="required-mark">*</span>
-        <span>Campos obligatorios para guardar o actualizar la ficha del empleado</span>
-      </div>
-
-      <section class="section-block">
-        <div class="section-heading">
+    <div class="app-form-layout" [formGroup]="form()">
+      <section class="app-form-section app-form-section--lead">
+        <div class="app-form-heading">
           <h3>Asignacion laboral</h3>
           <p>Define la ubicacion, el rol y el estado actual del empleado dentro de la organizacion.</p>
         </div>
@@ -37,10 +32,10 @@ import { EmployeeFormFieldComponent } from './employee-form-field.component';
               [control]="form().controls.fecha_ingreso"
               [fieldErrors]="fieldErrors()"
             >
-              <div class="control-shell control-shell--date" (click)="openDatePicker(entryDateInput)">
+              <div class="app-control-shell app-control-shell--date" (click)="openDatePicker(entryDateInput)">
                 <input #entryDateInput class="form-control form-control--date" [class.is-invalid]="hasError('fecha_ingreso')" [class.is-valid]="hasSuccess('fecha_ingreso')" type="date" formControlName="fecha_ingreso" required [attr.min]="birthDateMin" [attr.max]="today" />
-                <span class="control-divider" aria-hidden="true"></span>
-                <span class="control-indicator control-indicator--date" aria-hidden="true"></span>
+                <span class="app-control-divider" aria-hidden="true"></span>
+                <span class="app-control-indicator app-control-indicator--date" aria-hidden="true"></span>
               </div>
             </app-employee-form-field>
           </div>
@@ -89,15 +84,15 @@ import { EmployeeFormFieldComponent } from './employee-form-field.component';
               [control]="form().controls.provincia_laboral_id"
               [fieldErrors]="fieldErrors()"
             >
-              <div class="control-shell control-shell--select">
+              <div class="app-control-shell app-control-shell--select">
                 <select class="form-select" [class.is-invalid]="hasError('provincia_laboral_id')" [class.is-valid]="hasSuccess('provincia_laboral_id')" formControlName="provincia_laboral_id" required>
                   <option [ngValue]="null">Seleccione una provincia</option>
                   <option *ngFor="let province of provinces()" [ngValue]="province.id">
                     {{ province.nombre }}
                   </option>
                 </select>
-                <span class="control-divider" aria-hidden="true"></span>
-                <span class="control-indicator control-indicator--select" aria-hidden="true"></span>
+                <span class="app-control-divider" aria-hidden="true"></span>
+                <span class="app-control-indicator app-control-indicator--select" aria-hidden="true"></span>
               </div>
             </app-employee-form-field>
           </div>
@@ -111,11 +106,12 @@ import { EmployeeFormFieldComponent } from './employee-form-field.component';
               [fieldErrors]="fieldErrors()"
             >
               <div
-                class="status-switch-card"
-                [class.status-switch-card--inactive]="!isCurrentStatusActive()"
-                [class.status-switch-card--invalid]="hasError('estado_codigo')"
+                class="app-state-card"
+                [class.app-state-card--positive]="isCurrentStatusActive()"
+                [class.app-state-card--warning]="!isCurrentStatusActive()"
+                [class.app-state-card--invalid]="hasError('estado_codigo')"
               >
-                <div class="status-switch-copy">
+                <div class="app-state-card-copy">
                   <strong>{{ isCurrentStatusActive() ? 'Vigente' : 'Retirado' }}</strong>
                   <span>
                     {{
@@ -146,8 +142,8 @@ import { EmployeeFormFieldComponent } from './employee-form-field.component';
         </div>
       </section>
 
-      <section class="section-block section-block--soft">
-        <div class="section-heading">
+      <section class="app-form-section app-form-section--soft">
+        <div class="app-form-heading">
           <h3>Condiciones y observaciones</h3>
           <p>Completa la informacion economica y deja notas internas para el seguimiento del empleado.</p>
         </div>
@@ -169,7 +165,7 @@ import { EmployeeFormFieldComponent } from './employee-form-field.component';
           </div>
 
           <div class="col-lg-6">
-            <div class="radio-card">
+            <div class="app-support-card radio-card">
               <label class="form-label d-block mb-2">Jornada parcial</label>
               <div class="radio-options">
                 <label class="radio-option">
@@ -211,219 +207,14 @@ import { EmployeeFormFieldComponent } from './employee-form-field.component';
     </div>
   `,
   styles: [`
-    .form-layout {
-      display: grid;
-      gap: 18px;
-    }
-
-    .section-block {
-      display: grid;
-      gap: 18px;
-      padding: 18px;
-      border: 1px solid rgba(103, 86, 67, 0.14);
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.74);
-      transition:
-        transform 180ms ease,
-        box-shadow 180ms ease,
-        border-color 180ms ease,
-        background-color 180ms ease;
-    }
-
-    .section-block--soft {
-      background: linear-gradient(180deg, rgba(255, 250, 244, 0.74) 0%, rgba(255, 255, 255, 0.72) 100%);
-    }
-
-    .section-block:hover {
-      border-color: rgba(103, 86, 67, 0.18);
-      box-shadow: 0 10px 20px rgba(73, 44, 24, 0.04);
-    }
-
-    .section-heading {
-      display: grid;
-      gap: 4px;
-    }
-
-    .section-heading h3 {
-      margin: 0;
-      font-size: 1rem;
-      font-weight: 700;
-    }
-
-    .section-heading p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 0.9rem;
-      line-height: 1.45;
-    }
-
     .observations {
       min-height: 140px;
       resize: vertical;
     }
 
-    .required-legend {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 0.88rem;
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: rgba(197, 228, 247, 0.38);
-      border: 1px solid rgba(49, 119, 165, 0.12);
-    }
-
-    .required-mark {
-      color: #c24f3d;
-      font-weight: 700;
-    }
-
-    .control-shell {
-      --control-affordance-space: 3.45rem;
-      position: relative;
-      display: block;
-      width: 100%;
-      min-width: 0;
-    }
-
-    .control-divider {
-      position: absolute;
-      top: 9px;
-      bottom: 9px;
-      right: 1.85rem;
-      width: 1px;
-      background: rgba(103, 86, 67, 0.12);
-      pointer-events: none;
-      z-index: 2;
-      transition:
-        background-color 180ms ease,
-        transform 160ms ease;
-    }
-
-    .control-indicator {
-      position: absolute;
-      top: 50%;
-      right: 0.58rem;
-      width: 12px;
-      height: 12px;
-      transform: translateY(-50%);
-      pointer-events: none;
-      z-index: 2;
-      opacity: 0.72;
-      transition:
-        opacity 180ms ease,
-        transform 160ms ease;
-    }
-
-    .control-indicator--select::before {
-      content: '';
-      position: absolute;
-      inset: 1px 0 0 1px;
-      border-right: 2px solid rgba(37, 92, 128, 0.82);
-      border-bottom: 2px solid rgba(37, 92, 128, 0.82);
-      transform: rotate(45deg);
-      border-radius: 1px;
-    }
-
-    .control-indicator--date::before {
-      content: '';
-      position: absolute;
-      inset: 1px;
-      border: 1.8px solid rgba(37, 92, 128, 0.78);
-      border-radius: 3px;
-      box-sizing: border-box;
-    }
-
-    .control-indicator--date::after {
-      content: '';
-      position: absolute;
-      left: 2px;
-      right: 2px;
-      top: 2px;
-      height: 3px;
-      border-radius: 2px 2px 1px 1px;
-      background: rgba(37, 92, 128, 0.78);
-      box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.35);
-    }
-
-    .control-shell:hover .control-divider {
-      background: rgba(49, 119, 165, 0.18);
-      transform: translateY(-1px);
-    }
-
-    .control-shell:hover .control-indicator {
-      opacity: 0.9;
-      transform: translateY(calc(-50% - 1px));
-    }
-
     .radio-card {
-      display: grid;
       gap: 10px;
-      padding: 14px 16px;
       min-height: 100%;
-      border: 1px dashed rgba(103, 86, 67, 0.18);
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.7);
-      transition:
-        border-color 180ms ease,
-        background-color 180ms ease,
-        box-shadow 180ms ease;
-    }
-
-    .radio-card:hover {
-      border-color: rgba(49, 119, 165, 0.22);
-      box-shadow: 0 10px 18px rgba(49, 119, 165, 0.05);
-    }
-
-    .status-switch-card {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      padding: 12px 14px;
-      min-height: 62px;
-      border: 1px solid rgba(57, 134, 83, 0.2);
-      border-radius: 16px;
-      background: linear-gradient(180deg, rgba(240, 250, 243, 0.92) 0%, rgba(255, 255, 255, 0.9) 100%);
-      transition:
-        transform 180ms ease,
-        border-color 180ms ease,
-        background-color 180ms ease,
-        box-shadow 180ms ease;
-    }
-
-    .status-switch-card:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 10px 18px rgba(73, 44, 24, 0.05);
-    }
-
-    .status-switch-card--inactive {
-      border-color: rgba(166, 111, 63, 0.24);
-      background: linear-gradient(180deg, rgba(255, 248, 242, 0.92) 0%, rgba(255, 255, 255, 0.9) 100%);
-    }
-
-    .status-switch-card--invalid {
-      border-color: rgba(181, 56, 56, 0.34);
-      box-shadow: 0 0 0 0.16rem rgba(181, 56, 56, 0.08);
-    }
-
-    .status-switch-copy {
-      display: grid;
-      gap: 2px;
-      min-width: 0;
-    }
-
-    .status-switch-copy strong {
-      color: var(--text-strong);
-      font-size: 0.93rem;
-      line-height: 1.1;
-    }
-
-    .status-switch-copy span {
-      color: var(--muted);
-      font-size: 0.82rem;
-      line-height: 1.4;
     }
 
     .status-switch-control {
@@ -596,132 +387,7 @@ import { EmployeeFormFieldComponent } from './employee-form-field.component';
       transform: scale(1.05);
     }
 
-    :host ::ng-deep .form-control,
-    :host ::ng-deep .form-select,
-    :host ::ng-deep .input-group-text {
-      min-height: 48px;
-      padding: 0.72rem 0.95rem;
-      border-radius: 14px;
-      border-color: rgba(103, 86, 67, 0.16);
-      background: rgba(255, 255, 255, 0.94);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.72),
-        0 1px 2px rgba(73, 44, 24, 0.03);
-      transition:
-        border-color 180ms ease,
-        box-shadow 180ms ease,
-        background-color 180ms ease,
-        transform 160ms ease,
-        filter 160ms ease;
-    }
-
-    :host ::ng-deep .form-control::placeholder {
-      color: rgba(95, 86, 77, 0.62);
-    }
-
-    :host ::ng-deep .control-shell > .form-control,
-    :host ::ng-deep .control-shell > .form-select {
-      display: block;
-      width: 100%;
-      max-width: none;
-      box-sizing: border-box;
-    }
-
-    :host ::ng-deep .form-select {
-      appearance: none;
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      cursor: pointer;
-      padding-right: var(--control-affordance-space);
-      background-image: none;
-    }
-
-    :host ::ng-deep .control-shell--date .form-control {
-      cursor: pointer;
-      padding-right: var(--control-affordance-space);
-      background-image: none;
-    }
-
-    :host ::ng-deep .form-control--date::-webkit-calendar-picker-indicator {
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 3.4rem;
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      opacity: 0;
-      cursor: pointer;
-    }
-
-    :host ::ng-deep textarea.form-control {
-      padding-top: 0.82rem;
-      padding-bottom: 0.82rem;
-    }
-
-    :host ::ng-deep .form-control:hover,
-    :host ::ng-deep .form-select:hover,
-    :host ::ng-deep .input-group:hover .form-control,
-    :host ::ng-deep .input-group:hover .input-group-text {
-      border-color: rgba(49, 119, 165, 0.24);
-      background: rgba(255, 255, 255, 0.98);
-      filter: saturate(1.01);
-    }
-
-    :host ::ng-deep .form-control:focus,
-    :host ::ng-deep .form-select:focus {
-      transform: translateY(-1px);
-      border-color: rgba(49, 119, 165, 0.34);
-      background: rgba(255, 255, 255, 0.99);
-      box-shadow:
-        0 0 0 0.18rem rgba(49, 119, 165, 0.12),
-        0 10px 20px rgba(49, 119, 165, 0.05);
-    }
-
-    :host ::ng-deep .input-group .form-control:focus + .input-group-text {
-      border-color: rgba(49, 119, 165, 0.34);
-      background: rgba(240, 248, 252, 0.94);
-    }
-
-    :host ::ng-deep .form-control.is-valid,
-    :host ::ng-deep .form-select.is-valid {
-      border-color: rgba(57, 134, 83, 0.34);
-      padding-right: var(--control-affordance-space);
-      background-image: none;
-      box-shadow:
-        0 0 0 0.14rem rgba(57, 134, 83, 0.08),
-        0 6px 14px rgba(57, 134, 83, 0.04);
-    }
-
-    :host ::ng-deep .form-control.is-invalid,
-    :host ::ng-deep .form-select.is-invalid {
-      border-color: rgba(181, 56, 56, 0.38);
-      padding-right: var(--control-affordance-space);
-      background-image: none;
-      box-shadow:
-        0 0 0 0.14rem rgba(181, 56, 56, 0.08),
-        0 6px 14px rgba(181, 56, 56, 0.04);
-    }
-
-    :host ::ng-deep .form-select:focus + .control-divider,
-    :host ::ng-deep .form-control--date:focus + .control-divider {
-      background: rgba(49, 119, 165, 0.24);
-    }
-
-    :host ::ng-deep .form-select:focus ~ .control-indicator,
-    :host ::ng-deep .form-control--date:focus ~ .control-indicator {
-      opacity: 0.96;
-    }
-
     @media (max-width: 640px) {
-      .section-block {
-        padding: 16px;
-      }
-
-      .status-switch-card {
-        align-items: flex-start;
-      }
-
       .radio-options {
         grid-template-columns: 1fr;
       }

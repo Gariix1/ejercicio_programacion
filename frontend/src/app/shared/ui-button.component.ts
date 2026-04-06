@@ -54,6 +54,8 @@ export type UiButtonVariant =
       line-height: 1.15;
       white-space: nowrap;
       text-decoration: none;
+      backdrop-filter: blur(14px) saturate(1.18);
+      border-width: 1px;
       transition:
         transform 160ms ease,
         box-shadow 160ms ease,
@@ -73,6 +75,17 @@ export type UiButtonVariant =
       transition:
         opacity 180ms ease,
         transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .ui-button::before {
+      content: '';
+      position: absolute;
+      inset: 1px;
+      border-radius: inherit;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.04) 44%, transparent 100%);
+      opacity: 0.86;
       pointer-events: none;
       z-index: 0;
     }
@@ -116,75 +129,90 @@ export type UiButtonVariant =
     }
 
     .ui-button.btn-primary {
-      background: linear-gradient(180deg, #3177a5 0%, #2b688f 100%);
-      border-color: #2b688f;
-      box-shadow: 0 14px 26px rgba(49, 119, 165, 0.18);
+      background: linear-gradient(180deg, rgba(67, 144, 195, 0.92) 0%, rgba(43, 104, 143, 0.84) 100%);
+      border-color: rgba(255, 255, 255, 0.26);
+      box-shadow:
+        0 18px 30px rgba(49, 119, 165, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.24);
     }
 
     .ui-button.btn-primary:hover:not(:disabled) {
-      background: linear-gradient(180deg, #2f84b8 0%, #2b688f 100%);
-      border-color: #2b688f;
+      background: linear-gradient(180deg, rgba(74, 153, 205, 0.94) 0%, rgba(43, 104, 143, 0.88) 100%);
+      border-color: rgba(255, 255, 255, 0.32);
       color: white;
     }
 
     .ui-button.btn-success {
-      background: linear-gradient(180deg, #3ca25f 0%, #2f8150 100%);
-      border-color: #2f8150;
-      box-shadow: 0 14px 26px rgba(50, 130, 77, 0.18);
+      background: linear-gradient(180deg, rgba(69, 173, 104, 0.9) 0%, rgba(47, 129, 80, 0.82) 100%);
+      border-color: rgba(255, 255, 255, 0.24);
+      box-shadow:
+        0 18px 30px rgba(50, 130, 77, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22);
     }
 
     .ui-button.btn-success:hover:not(:disabled) {
-      background: linear-gradient(180deg, #44ad68 0%, #2f8150 100%);
-      border-color: #2f8150;
+      background: linear-gradient(180deg, rgba(76, 183, 112, 0.92) 0%, rgba(47, 129, 80, 0.86) 100%);
+      border-color: rgba(255, 255, 255, 0.3);
       color: white;
     }
 
     .ui-button.btn-warning {
-      background: linear-gradient(180deg, #d79627 0%, #bf7d10 100%);
-      border-color: #bf7d10;
-      box-shadow: 0 14px 24px rgba(191, 125, 16, 0.16);
+      background: linear-gradient(180deg, rgba(222, 166, 63, 0.92) 0%, rgba(191, 125, 16, 0.84) 100%);
+      border-color: rgba(255, 255, 255, 0.24);
+      box-shadow:
+        0 18px 30px rgba(191, 125, 16, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.24);
     }
 
     .ui-button.btn-warning:hover:not(:disabled) {
-      background: linear-gradient(180deg, #e0a33d 0%, #bf7d10 100%);
-      border-color: #bf7d10;
+      background: linear-gradient(180deg, rgba(228, 173, 76, 0.94) 0%, rgba(191, 125, 16, 0.88) 100%);
+      border-color: rgba(255, 255, 255, 0.3);
       color: white;
     }
 
     .ui-button.btn-outline-primary {
       color: #255c80;
-      border-color: rgba(49, 119, 165, 0.42);
-      background: rgba(255, 255, 255, 0.92);
+      border-color: rgba(255, 255, 255, 0.34);
+      background: rgba(255, 255, 255, 0.44);
+      box-shadow:
+        0 12px 24px rgba(49, 119, 165, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22);
     }
 
     .ui-button.btn-outline-primary:hover:not(:disabled) {
       color: #1e567a;
-      background: rgba(197, 228, 247, 0.58);
-      border-color: rgba(49, 119, 165, 0.48);
+      background: rgba(208, 232, 248, 0.48);
+      border-color: rgba(255, 255, 255, 0.42);
     }
 
     .ui-button.btn-outline-secondary {
       color: #5c544b;
-      border-color: rgba(103, 86, 67, 0.26);
-      background: rgba(255, 255, 255, 0.92);
+      border-color: rgba(255, 255, 255, 0.32);
+      background: rgba(255, 255, 255, 0.42);
+      box-shadow:
+        0 10px 22px rgba(73, 44, 24, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22);
     }
 
     .ui-button.btn-outline-secondary:hover:not(:disabled) {
       color: #4c453d;
-      background: rgba(255, 250, 244, 0.92);
-      border-color: rgba(103, 86, 67, 0.34);
+      background: rgba(255, 250, 244, 0.5);
+      border-color: rgba(255, 255, 255, 0.4);
     }
 
     .ui-button.btn-outline-danger {
       color: #9f3030;
-      border-color: rgba(181, 56, 56, 0.28);
-      background: rgba(255, 255, 255, 0.92);
+      border-color: rgba(255, 255, 255, 0.32);
+      background: rgba(255, 255, 255, 0.42);
+      box-shadow:
+        0 10px 22px rgba(181, 56, 56, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22);
     }
 
     .ui-button.btn-outline-danger:hover:not(:disabled) {
       color: #852424;
-      background: rgba(239, 211, 211, 0.66);
-      border-color: rgba(181, 56, 56, 0.34);
+      background: rgba(245, 220, 220, 0.48);
+      border-color: rgba(255, 255, 255, 0.4);
     }
 
     .ui-button.btn-link {

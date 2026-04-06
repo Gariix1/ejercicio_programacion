@@ -1,10 +1,11 @@
 import { AsyncPipe, NgFor, NgIf } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { BehaviorSubject, switchMap, tap } from 'rxjs';
 import { ActionBarComponent } from '../../../shared/action-bar.component';
 import { ModuleHeaderComponent } from '../../../shared/module-header.component';
 import { PaginationControlsComponent } from '../../../shared/pagination-controls.component';
+import { StatStripComponent, StatStripItem } from '../../../shared/stat-strip.component';
 import { UiButtonComponent } from '../../../shared/ui-button.component';
 import { EmployeesApiService } from '../data-access/employees-api.service';
 import { EmployeeFiltersComponent, EmployeeFiltersValue } from '../components/employee-filters.component';
@@ -21,57 +22,56 @@ import { Employee, EmployeeListQuery, EmployeeSortField } from '../models/employ
     ActionBarComponent,
     ModuleHeaderComponent,
     PaginationControlsComponent,
+    StatStripComponent,
     UiButtonComponent,
     EmployeeFiltersComponent,
     EmployeeTableComponent,
   ],
   template: `
-    <section class="screen">
+    <section class="app-page-shell">
       <app-module-header
         moduleTitle="Empleados"
         sectionTitle=""
       ></app-module-header>
 
-      <div class="alert alert-success alert-dismissible fade show mb-0" role="alert" *ngIf="flashMessage">
-        {{ flashMessage }}
-        <button type="button" class="btn-close" aria-label="Close" (click)="flashMessage = null"></button>
+      <div
+        class="alert alert-success app-flash-alert mb-0"
+        role="alert"
+        *ngIf="flashMessage"
+        [class.is-leaving]="isFlashMessageLeaving"
+      >
+        <span>{{ flashMessage }}</span>
+        <button
+          type="button"
+          class="app-flash-alert-close"
+          aria-label="Cerrar mensaje"
+          (click)="dismissFlashMessage()"
+        >
+          <span aria-hidden="true">×</span>
+        </button>
       </div>
 
       <ng-container *ngIf="result$ | async as result">
-        <section class="module-panel">
-          <header class="panel-header">
-            <div class="panel-copy">
-              <span class="panel-kicker">Gestion de empleados</span>
-              <h2>Gestion del modulo</h2>
-              <p>Administra registros, busquedas y accesos rapidos del catalogo de empleados.</p>
+        <section class="app-surface-panel app-surface-panel--compact">
+          <header class="app-panel-header">
+            <div class="app-panel-copy app-panel-copy--compact">
+              <span class="app-panel-kicker">Gestion de empleados</span>
+              <h2 class="app-panel-title">Gestion del modulo</h2>
+              <p class="app-panel-description">Administra registros, busquedas y accesos rapidos del catalogo de empleados.</p>
             </div>
 
-            <app-action-bar class="panel-actions" align="end">
+            <app-action-bar align="end">
               <app-ui-button variant="success" routerLink="/employees/new" [wide]="true">Nuevo empleado</app-ui-button>
               <app-ui-button variant="outline-primary" routerLink="/reports/employees" [wide]="true">Ver reporte</app-ui-button>
             </app-action-bar>
           </header>
 
-          <section class="panel-stats" aria-label="Resumen del modulo">
-            <article class="stat-item">
-              <span class="stat-label">Total empleados</span>
-              <strong class="stat-value">{{ result.pagination?.total ?? result.items.length }}</strong>
-            </article>
+          <app-stat-strip
+            ariaLabel="Resumen del modulo"
+            [items]="buildSummaryItems(result)"
+          ></app-stat-strip>
 
-            <article class="stat-item">
-              <span class="stat-label">Pagina actual</span>
-              <strong class="stat-value">
-                {{ result.pagination?.current_page ?? 1 }} / {{ result.pagination?.last_page ?? 1 }}
-              </strong>
-            </article>
-
-            <article class="stat-item">
-              <span class="stat-label">Coincidencias</span>
-              <strong class="stat-value">{{ result.items.length }}</strong>
-            </article>
-          </section>
-
-          <section class="panel-section">
+          <section class="app-panel-section">
             <app-employee-filters
               [embedded]="true"
               [activeCount]="activeFilterChips.length"
@@ -80,9 +80,9 @@ import { Employee, EmployeeListQuery, EmployeeSortField } from '../models/employ
               (clear)="clearFilters()"
             ></app-employee-filters>
 
-            <section class="active-filters active-filters--left" *ngIf="activeFilterChips.length > 0">
-              <span class="active-label">Filtros activos:</span>
-              <span class="active-chip" *ngFor="let chip of activeFilterChips">{{ chip }}</span>
+            <section class="app-filter-chips" *ngIf="activeFilterChips.length > 0">
+              <span class="app-filter-label">Filtros activos:</span>
+              <span class="app-filter-chip" *ngFor="let chip of activeFilterChips">{{ chip }}</span>
             </section>
           </section>
         </section>
@@ -97,166 +97,87 @@ import { Employee, EmployeeListQuery, EmployeeSortField } from '../models/employ
 
         <app-pagination-controls
           *ngIf="result.pagination && result.pagination.last_page > 1"
+          [currentPage]="result.pagination.current_page"
+          [lastPage]="result.pagination.last_page"
           [disablePrevious]="result.pagination.current_page <= 1"
           [disableNext]="result.pagination.current_page >= result.pagination.last_page"
-          [statusText]="'Pagina ' + result.pagination.current_page + ' de ' + result.pagination.last_page"
+          [statusText]="result.pagination.current_page + ' de ' + result.pagination.last_page"
           (previous)="goToPreviousPage()"
           (next)="goToNextPage()"
+          (pageChange)="goToPage($event)"
         ></app-pagination-controls>
       </ng-container>
     </section>
   `,
   styles: [`
-    .screen {
-      width: min(100%, var(--content-narrow-max));
-      margin: 0 auto;
-      display: grid;
-      gap: 12px;
-    }
-
-    .module-panel {
-      display: grid;
-      gap: 12px;
-      padding: 18px;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 250, 244, 0.84) 100%);
-      box-shadow: 0 14px 28px rgba(73, 44, 24, 0.06);
-    }
-
-    .panel-header {
-      display: flex;
-      align-items: end;
-      justify-content: space-between;
-      gap: 14px;
-    }
-
-    .panel-copy {
-      display: grid;
-      gap: 2px;
-      max-width: 480px;
-    }
-
-    .panel-kicker {
-      color: var(--text-soft);
-      font-size: var(--font-size-kicker);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .panel-copy h2 {
-      margin: 0;
-      font-size: clamp(1.08rem, 1.42vw, 1.26rem);
-      line-height: var(--line-height-tight);
-      color: var(--text-strong);
-      font-weight: 700;
-    }
-
-    .panel-actions {
-      justify-content: flex-end;
-      flex: 1 1 auto;
-      align-self: center;
-    }
-
-    .panel-stats {
-      display: flex;
-      align-items: stretch;
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      overflow-y: hidden;
-      border: 1px solid rgba(103, 86, 67, 0.14);
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.62);
-      scrollbar-width: none;
-    }
-
-    .panel-stats::-webkit-scrollbar {
-      display: none;
-    }
-
-    .stat-item {
-      display: grid;
-      gap: 2px;
-      flex: 1 1 0;
-      min-width: 0;
-      padding: 8px 12px;
-      min-height: 0;
-      align-content: center;
-      background: transparent;
-    }
-
-    .stat-item:not(:last-child) {
-      border-right: 1px solid rgba(103, 86, 67, 0.12);
-    }
-
-    .stat-label {
-      color: var(--text-soft);
-      font-size: var(--font-size-kicker);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .stat-value {
-      font-size: clamp(0.98rem, 1.18vw, 1.1rem);
-      font-weight: 700;
-      color: var(--text-strong);
-      line-height: 1.1;
-    }
-
-    .panel-section {
-      display: grid;
-      gap: 10px;
-      min-width: 0;
-    }
-
-    .active-filters {
+    .app-flash-alert {
       display: flex;
       align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-      min-height: 24px;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border: 1px solid rgba(114, 191, 132, 0.22);
+      border-radius: 16px;
+      background:
+        linear-gradient(180deg, rgba(220, 245, 226, 0.82) 0%, rgba(210, 240, 218, 0.66) 100%),
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.34), transparent 46%);
+      color: #24613a;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.28),
+        0 12px 24px rgba(63, 148, 88, 0.08);
+      transition:
+        opacity 260ms ease,
+        transform 260ms ease,
+        filter 260ms ease;
     }
 
-    .active-filters--left {
-      justify-content: flex-start;
+    .app-flash-alert.is-leaving {
+      opacity: 0;
+      transform: translateY(-6px) scale(0.992);
+      filter: saturate(0.96);
     }
 
-    .active-label {
-      color: var(--muted);
-      font-size: var(--font-size-caption);
+    .app-flash-alert-close {
+      flex: 0 0 auto;
+      width: 34px;
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.34);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.42);
+      color: #24613a;
+      font-size: 1.15rem;
+      line-height: 1;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
+      transition:
+        transform 160ms ease,
+        background-color 160ms ease,
+        border-color 160ms ease,
+        box-shadow 160ms ease;
     }
 
-    .active-chip {
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(197, 228, 247, 0.75);
-      color: #255c80;
-      font-size: var(--font-size-caption);
+    .app-flash-alert-close:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.56);
+      border-color: rgba(255, 255, 255, 0.42);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.28),
+        0 8px 16px rgba(63, 148, 88, 0.08);
     }
 
-    @media (max-width: 640px) {
-      .module-panel {
-        padding: 14px;
-        border-radius: 18px;
-      }
-
-      .panel-header {
-        align-items: stretch;
-        flex-direction: column;
-      }
-
-      .panel-actions {
-        justify-content: flex-start;
-      }
-
-      .stat-item {
-        min-width: 156px;
-      }
+    .app-flash-alert-close:focus-visible {
+      outline: 0;
+      box-shadow:
+        0 0 0 0.18rem rgba(63, 148, 88, 0.14),
+        0 8px 16px rgba(63, 148, 88, 0.08);
     }
   `],
 })
-export class EmployeesListPageComponent {
+export class EmployeesListPageComponent implements OnInit, OnDestroy {
   protected flashMessage: string | null = history.state?.flashMessage ?? null;
+  protected isFlashMessageLeaving = false;
   protected filters: EmployeeFiltersValue = {
     nombre: '',
     codigo: '',
@@ -274,6 +195,8 @@ export class EmployeesListPageComponent {
   private readonly querySubject = new BehaviorSubject<EmployeeListQuery>({ ...this.query });
   private lastKnownPage = 1;
   private lastKnownLastPage = 1;
+  private flashMessageTimer: number | null = null;
+  private flashMessageFadeTimer: number | null = null;
 
   readonly result$ = this.querySubject.pipe(
     switchMap((query) => this.employeesApiService.list(query)),
@@ -287,6 +210,15 @@ export class EmployeesListPageComponent {
     private readonly employeesApiService: EmployeesApiService,
     private readonly router: Router,
   ) {}
+
+  ngOnInit(): void {
+    this.scheduleFlashMessageDismiss();
+  }
+
+  ngOnDestroy(): void {
+    this.clearFlashMessageTimer();
+    this.clearFlashMessageFadeTimer();
+  }
 
   protected onFiltersChange(value: EmployeeFiltersValue): void {
     this.filters = value;
@@ -314,6 +246,14 @@ export class EmployeesListPageComponent {
     }
   }
 
+  protected goToPage(page: number): void {
+    if (page === this.lastKnownPage) {
+      return;
+    }
+
+    this.updateQuery({ page });
+  }
+
   protected openEdit(employee: Employee): void {
     this.router.navigate(['/employees', employee.id, 'edit']);
   }
@@ -331,12 +271,34 @@ export class EmployeesListPageComponent {
     this.updateQuery({ search: '', perPage: 20, page: 1 });
   }
 
+  protected dismissFlashMessage(): void {
+    if (!this.flashMessage || this.isFlashMessageLeaving) {
+      return;
+    }
+
+    this.clearFlashMessageTimer();
+    this.isFlashMessageLeaving = true;
+    this.flashMessageFadeTimer = window.setTimeout(() => {
+      this.flashMessage = null;
+      this.isFlashMessageLeaving = false;
+      this.flashMessageFadeTimer = null;
+    }, 260);
+  }
+
   protected get activeFilterChips(): string[] {
     return [
       this.filters.nombre ? `Nombre: ${this.filters.nombre}` : null,
       this.filters.codigo ? `Codigo: ${this.filters.codigo}` : null,
       this.filters.perPage !== 20 ? `Filas: ${this.filters.perPage}` : null,
     ].filter(Boolean) as string[];
+  }
+
+  protected buildSummaryItems(result: { items: Employee[]; pagination?: { total?: number; current_page?: number; last_page?: number } | null }): StatStripItem[] {
+    return [
+      { label: 'Total empleados', value: result.pagination?.total ?? result.items.length },
+      { label: 'Pagina actual', value: `${result.pagination?.current_page ?? 1} / ${result.pagination?.last_page ?? 1}` },
+      { label: 'Coincidencias', value: result.items.length },
+    ];
   }
 
   private updateQuery(partial: Partial<EmployeeListQuery>): void {
@@ -348,5 +310,34 @@ export class EmployeesListPageComponent {
       page: clampedPage,
     });
     this.querySubject.next({ ...this.query });
+  }
+
+  private scheduleFlashMessageDismiss(): void {
+    this.clearFlashMessageTimer();
+    this.clearFlashMessageFadeTimer();
+
+    if (!this.flashMessage) {
+      return;
+    }
+
+    this.isFlashMessageLeaving = false;
+    this.flashMessageTimer = window.setTimeout(() => {
+      this.dismissFlashMessage();
+      this.flashMessageTimer = null;
+    }, 2440);
+  }
+
+  private clearFlashMessageTimer(): void {
+    if (this.flashMessageTimer !== null) {
+      clearTimeout(this.flashMessageTimer);
+      this.flashMessageTimer = null;
+    }
+  }
+
+  private clearFlashMessageFadeTimer(): void {
+    if (this.flashMessageFadeTimer !== null) {
+      clearTimeout(this.flashMessageFadeTimer);
+      this.flashMessageFadeTimer = null;
+    }
   }
 }

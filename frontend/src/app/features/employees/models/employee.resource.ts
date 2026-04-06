@@ -11,6 +11,7 @@ interface EmployeeAttributes {
   fecha_nacimiento: string;
   email: string;
   fotografia: string | null;
+  fotografia_url: string | null;
   observaciones_personales: string | null;
   fecha_ingreso: string;
   cargo: string;
@@ -59,6 +60,7 @@ export function mapEmployeeResource(resource: EmployeeApiResource): Employee {
     fecha_nacimiento: resource.attributes.fecha_nacimiento,
     email: resource.attributes.email,
     fotografia: resource.attributes.fotografia,
+    fotografia_url: resource.attributes.fotografia_url,
     observaciones_personales: resource.attributes.observaciones_personales,
     fecha_ingreso: resource.attributes.fecha_ingreso,
     cargo: resource.attributes.cargo,

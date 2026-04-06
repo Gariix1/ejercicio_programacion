@@ -9,8 +9,10 @@ Route::get('/health', static fn () => response()->json([
     'message' => 'API ready',
 ]));
 
+Route::get('/employee-photos/{path}', [EmployeeController::class, 'showPhoto'])->where('path', '.*');
 Route::get('/employees', [EmployeeController::class, 'index']);
 Route::get('/employees/{id}', [EmployeeController::class, 'show'])->whereNumber('id');
+Route::post('/employees/photo', [EmployeeController::class, 'uploadPhoto']);
 Route::post('/employees', [EmployeeController::class, 'store']);
 Route::put('/employees/{id}', [EmployeeController::class, 'update'])->whereNumber('id');
 Route::patch('/employees/{id}', [EmployeeController::class, 'patch'])->whereNumber('id');

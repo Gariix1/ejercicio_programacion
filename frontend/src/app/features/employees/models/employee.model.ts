@@ -11,6 +11,7 @@ export interface Employee {
   fecha_nacimiento: string;
   email: string;
   fotografia: string | null;
+  fotografia_url?: string | null;
   observaciones_personales: string | null;
   fecha_ingreso: string;
   cargo: string;
@@ -82,4 +83,12 @@ export interface EmployeeListResult {
   pagination: ApiPaginationMeta | null;
   meta: ApiMeta;
   links: ApiLinks;
+}
+
+export interface EmployeePhotoUploadResult {
+  path: string;
+  url: string;
+  original_name: string;
+  mime_type: string;
+  size: number;
 }

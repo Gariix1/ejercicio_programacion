@@ -1,29 +1,31 @@
 # Ejercicio de Programacion
 
-Challenge de empleados con backend API en Laravel, frontend Angular por features y MySQL 8 en `utf8mb4`.
+Sistema de gestion de empleados con backend API en Laravel, frontend Angular por features y MySQL 8 en `utf8mb4`.
 
-Este repositorio implementa el alcance del PDF original `Ejercicio Programador.pdf` y sigue el complemento tecnico `codex_context_challenge_empleados.pdf`.
+El proyecto ya cubre el flujo principal del challenge original: modulo de empleados, formulario de alta y edicion, reporte operativo, exportacion y soporte basico para fotografia de empleados.
 
 ## Estado actual
 
-Completado:
+Listo hoy:
 
-- backend migrado a Laravel
-- arquitectura modular en backend por `Employees`, `Provinces` y `Reports`
-- frontend Angular base por features
-- Bootstrap 4 integrado en frontend
-- CORS y conexion MySQL configurados
-- `schema.sql` alineado con la base real
-- `seed.sql` con provincias y un empleado de prueba
+- backend Laravel modular por dominios `Employees`, `Provinces` y `Reports`
+- contrato de API uniforme con `data`, `meta`, `links` y errores estructurados
+- listado de empleados con busqueda, ordenamiento y paginacion
+- formulario de empleados con datos personales y laborales
+- alta y edicion de empleados con validaciones
+- confirmaciones para descartar cambios y para confirmar actualizaciones
+- carga real de fotografia con preview y almacenamiento en backend
+- centro de reportes y reporte operativo de empleados
+- exportacion de reportes en `PDF`, `CSV` y `JSON`
+- componentes shared para botones, modales, banners, paginacion, navbar y paneles
+- estilo visual unificado con enfoque glassmorphism ligero
 
-Pendiente:
+Todavia por cerrar o mejorar:
 
-- completar pantallas reales del flujo del PDF
-- formulario de datos personales
-- formulario de datos laborales
-- listado con busqueda visual
-- reporte general ordenable en UI
-- terminar integracion frontend con el flujo completo
+- mas pruebas automaticas del frontend
+- mas reportes reales aparte del de empleados
+- limpieza final del arbol de cambios y separacion en commits pequenos
+- QA manual final en responsive y flujos borde
 
 ## Estructura
 
@@ -56,6 +58,7 @@ ejercicio_programacion/
 │   │   │   └── features/
 │   │   ├── assets/
 │   │   ├── environments/
+│   │   ├── vendor/
 │   │   ├── styles.scss
 │   │   └── main.ts
 │   ├── angular.json
@@ -71,13 +74,11 @@ ejercicio_programacion/
 
 ## Backend
 
-El backend usa Laravel con enfoque API-first y estructura modular.
-
-Flujo principal:
+El backend sigue el flujo:
 
 `Route -> Controller -> Request -> Service -> Repository -> Database`
 
-Endpoints disponibles:
+Endpoints principales:
 
 - `GET /api/health`
 - `GET /api/employees`
@@ -85,38 +86,71 @@ Endpoints disponibles:
 - `POST /api/employees`
 - `PUT /api/employees/{id}`
 - `PATCH /api/employees/{id}`
+- `DELETE /api/employees/{id}`
+- `POST /api/employees/photo`
+- `GET /api/employee-photos/{path}`
 - `GET /api/provinces`
 - `GET /api/reports/employees`
 - `GET /api/reports/summary`
 
-Contrato general de la API:
+Capacidades relevantes:
 
-- respuestas exitosas con `data`, `meta` y `links`
-- recursos expuestos con `type`, `id`, `attributes` y `relationships` cuando aplica
-- errores expuestos en `errors[]` con `status`, `code`, `title`, `detail` y `source`
+- filtros y ordenamiento en empleados y reportes
+- validaciones de negocio para estado, fechas y campos unicos
+- soporte para actualizacion parcial con `PATCH`
+- carga de fotografias hasta `6 MB`
+- entrega de fotografias por URL servida desde la propia API
 
-Parametros principales:
+## Frontend
 
-- `GET /api/employees` y `GET /api/reports/employees` aceptan `search`, `sort_by`, `sort_dir`, `page` y `per_page`
-- `PUT /api/employees/{id}` actualiza el recurso completo
-- `PATCH /api/employees/{id}` actualiza parcialmente un empleado sin perder validacion de negocio
+El frontend se organiza por `core`, `shared` y `features`.
+
+Features principales:
+
+- `employees`
+  - listado
+  - formulario create/edit
+  - filtros
+  - tabla
+- `reports`
+  - home de reportes
+  - reporte de empleados
+
+Shared relevantes:
+
+- `top-nav`
+- `module-header`
+- `ui-button`
+- `status-banner`
+- `pagination-controls`
+- `confirm-action-modal`
+- `process-feedback-modal`
+- `export-modal`
+- `horizontal-scroll-shell`
+- `report-export.service`
 
 ## Base de datos
 
-El modelo de datos versionado ya esta alineado con la base real usada por la API.
-
-Tablas:
+Tablas principales:
 
 - `provincias`
 - `empleados`
 
-Puntos importantes:
+Campos relevantes de `empleados`:
 
-- `telefono` y `direccion` forman parte del modelo actual de `empleados`
-- `codigo_empleado` y `cedula` son unicos
-- existen `FK` a `provincias`
-- existe `CHECK` de estado
-- `seed.sql` incluye 24 provincias y 1 empleado de prueba
+- identificacion: `codigo_empleado`, `nombres`, `apellidos`, `cedula`
+- contacto: `telefono`, `direccion`, `email`
+- personales: `fecha_nacimiento`, `fotografia`, `observaciones_personales`
+- laborales: `fecha_ingreso`, `cargo`, `departamento`, `sueldo`, `jornada_parcial`, `observaciones_laborales`
+- relaciones: `provincia_personal_id`, `provincia_laboral_id`
+- estado: `estado_codigo`, `estado_nombre`
+
+Restricciones activas:
+
+- `UNIQUE` en `codigo_empleado`
+- `UNIQUE` en `cedula`
+- `FOREIGN KEY` hacia `provincias`
+- `CHECK` de coherencia entre `estado_codigo` y `estado_nombre`
 
 ## Arranque local
 
@@ -133,13 +167,13 @@ mysql -uroot -proot < database/seed.sql
 cd backend
 cp .env.example .env
 composer install
-composer run serve
+php artisan key:generate
+php artisan serve
 ```
 
 Backend disponible en:
 
-- `http://127.0.0.1:8000`
-- `GET /api/employees` y `GET /api/reports/employees` aceptan `search`, `sort_by`, `sort_dir`, `page` y `per_page`
+- `http://localhost:8000`
 
 ### 3. Frontend
 
@@ -153,71 +187,48 @@ Frontend disponible en:
 
 - `http://localhost:4200`
 
-## Ejemplos de API
+## Verificacion rapida
 
-Detalle de empleado:
+Frontend:
 
-```json
-{
-  "data": {
-    "type": "employees",
-    "id": "1",
-    "attributes": {
-      "codigo_empleado": "E0001",
-      "nombres": "Ana",
-      "apellidos": "Perez"
-    },
-    "relationships": {
-      "provincia_personal": {
-        "data": {
-          "type": "provinces",
-          "id": "1"
-        },
-        "meta": {
-          "nombre": "Azuay"
-        }
-      }
-    },
-    "links": {
-      "self": "http://127.0.0.1:8000/api/employees/1"
-    }
-  },
-  "meta": {
-    "module": "employees"
-  },
-  "links": {
-    "self": "http://127.0.0.1:8000/api/employees/1"
-  }
-}
+```bash
+cd frontend
+npm run build
 ```
 
-Error de validacion:
+Backend:
 
-```json
-{
-  "errors": [
-    {
-      "status": 422,
-      "code": "VALIDATION_CEDULA_DIGITS",
-      "title": "Error de validacion",
-      "detail": "La cedula debe tener exactamente 10 digitos.",
-      "source": {
-        "field": "cedula"
-      }
-    }
-  ],
-  "meta": {
-    "request_status": "failed",
-    "error_type": "VALIDATION_ERROR",
-    "error_count": 1
-  }
-}
+```bash
+cd backend
+./vendor/bin/phpunit tests/Feature/EmployeesApiTest.php
 ```
 
-## Siguiente bloque recomendado
+## Ejemplos de flujos actuales
 
-1. construir el listado funcional con busqueda en Angular
-2. crear formulario de datos personales
-3. crear formulario de datos laborales
-4. conectar alta y edicion de empleados
-5. construir reporte general ordenable en UI
+Modulo de empleados:
+
+- buscar empleados por nombre o codigo
+- ordenar tabla
+- paginar
+- abrir ficha para editar
+
+Formulario:
+
+- crear empleado
+- editar empleado
+- cargar fotografia
+- confirmar actualizacion
+- confirmar salida con cambios sin guardar
+
+Reportes:
+
+- abrir centro de reportes
+- entrar al reporte operativo de empleados
+- filtrar y ordenar
+- exportar `PDF`, `CSV` o `JSON`
+
+## Riesgos o notas de cierre
+
+- el arbol de trabajo actual contiene muchos cambios simultaneos, por lo que conviene separar commits por bloques
+- hay bastante coverage funcional en backend de empleados, pero la parte visual del frontend depende todavia de QA manual
+- el sistema ya esta fuerte para demo o entrega funcional, pero aun conviene una pasada final de estabilizacion antes de considerar cierre total

@@ -14,37 +14,12 @@ import {
   standalone: true,
   imports: [NgIf],
   template: `
-    <div class="invalid-feedback d-block" *ngIf="error() as message">{{ message }}</div>
-    <div class="valid-feedback d-block" *ngIf="!error() && success() as message">✓ {{ message }}</div>
-    <small class="form-text text-muted d-block" *ngIf="!error() && !success() && hint() as message">
+    <div class="invalid-feedback d-block app-field-feedback" *ngIf="error() as message">{{ message }}</div>
+    <div class="valid-feedback d-block app-field-feedback" *ngIf="!error() && success() as message">✓ {{ message }}</div>
+    <small class="form-text text-muted d-block app-field-feedback app-field-feedback--hint" *ngIf="!error() && !success() && hint() as message">
       {{ message }}
     </small>
   `,
-  styles: [`
-    .invalid-feedback,
-    .valid-feedback,
-    .form-text {
-      font-size: 0.84rem;
-      line-height: 1.35;
-      animation: feedbackFade 180ms ease both;
-    }
-
-    .form-text {
-      color: var(--text-soft) !important;
-    }
-
-    @keyframes feedbackFade {
-      from {
-        opacity: 0;
-        transform: translateY(-2px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-  `],
 })
 export class EmployeeFieldFeedbackComponent {
   readonly field = input.required<EmployeeFormField>();

@@ -8,11 +8,14 @@ use App\Core\Http\Controllers\ApiController;
 use App\Modules\Employees\DTOs\EmployeeListFilters;
 use App\Modules\Employees\Requests\PatchEmployeeRequest;
 use App\Modules\Employees\Requests\StoreEmployeeRequest;
+use App\Modules\Employees\Requests\UploadEmployeePhotoRequest;
 use App\Modules\Employees\Requests\UpdateEmployeeRequest;
 use App\Modules\Employees\Resources\EmployeeResource;
 use App\Modules\Employees\Services\EmployeeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class EmployeeController extends ApiController
 {
@@ -41,6 +44,42 @@ final class EmployeeController extends ApiController
             ['module' => 'employees'],
             ['self' => url('/api/employees/' . $id)]
         );
+    }
+
+    public function uploadPhoto(UploadEmployeePhotoRequest $request): JsonResponse
+    {
+        $file = $request->file('fotografia');
+        $path = $file->store('empleados', 'public');
+
+        return $this->documentResponse(
+            [
+                'type' => 'employee-uploads',
+                'id' => pathinfo($path, PATHINFO_FILENAME),
+                'attributes' => [
+                    'path' => $path,
+                    'url' => $this->employeePhotoUrl($path),
+                    'original_name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getClientMimeType(),
+                    'size' => $file->getSize(),
+                ],
+            ],
+            201,
+            [
+                'module' => 'employees',
+                'message' => 'Fotografia cargada correctamente.',
+            ],
+            ['self' => url('/api/employees/photo')]
+        );
+    }
+
+    public function showPhoto(string $path): BinaryFileResponse
+    {
+        abort_unless($this->isSafeUploadPath($path), 404);
+        abort_unless(Storage::disk('public')->exists($path), 404);
+
+        return response()->file(Storage::disk('public')->path($path), [
+            'Cache-Control' => 'public, max-age=3600',
+        ]);
     }
 
     public function store(StoreEmployeeRequest $request): JsonResponse
@@ -101,5 +140,21 @@ final class EmployeeController extends ApiController
             ],
             ['self' => url('/api/employees/' . $employee->id)]
         );
+    }
+
+    private function employeePhotoUrl(string $path): string
+    {
+        $segments = array_map('rawurlencode', explode('/', ltrim($path, '/')));
+
+        return url('/api/employee-photos/' . implode('/', $segments));
+    }
+
+    private function isSafeUploadPath(string $path): bool
+    {
+        if (trim($path) === '') {
+            return false;
+        }
+
+        return !str_contains($path, '..');
     }
 }

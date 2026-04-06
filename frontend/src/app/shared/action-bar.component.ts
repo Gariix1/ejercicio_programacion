@@ -1,32 +1,37 @@
 import { NgClass } from '@angular/common';
-import { Component, input } from '@angular/core';
+import { Component, computed, input } from '@angular/core';
 
 @Component({
   selector: 'app-action-bar',
   standalone: true,
   imports: [NgClass],
   template: `
-    <section class="action-bar" [ngClass]="'action-bar--' + align()">
+    <section class="action-bar d-flex flex-wrap" [ngClass]="alignmentClass()">
       <ng-content></ng-content>
     </section>
   `,
   styles: [`
     .action-bar {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
       gap: 12px;
     }
 
-    .action-bar--start {
-      justify-content: flex-start;
-    }
-
-    .action-bar--end {
-      justify-content: flex-end;
+    .action-bar.justify-content-end {
+      width: 100%;
     }
   `],
 })
 export class ActionBarComponent {
   readonly align = input<'start' | 'center' | 'end'>('center');
+
+  protected readonly alignmentClass = computed(() => {
+    switch (this.align()) {
+      case 'start':
+        return 'justify-content-start';
+      case 'end':
+        return 'justify-content-end';
+      case 'center':
+      default:
+        return 'justify-content-center';
+    }
+  });
 }

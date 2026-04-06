@@ -9,10 +9,10 @@ import { EmployeeFormField, EmployeeFormFieldErrors } from '../forms/employee-fo
   standalone: true,
   imports: [NgIf, EmployeeFieldFeedbackComponent],
   template: `
-    <div class="field-shell">
-      <label class="form-label">
+    <div class="app-field-shell">
+      <label class="app-field-label">
         {{ label() }}
-        <span class="required-mark" *ngIf="required()"> *</span>
+        <span class="app-required-mark" *ngIf="required()"> *</span>
       </label>
 
       <ng-content></ng-content>
@@ -24,30 +24,6 @@ import { EmployeeFormField, EmployeeFormFieldErrors } from '../forms/employee-fo
       ></app-employee-field-feedback>
     </div>
   `,
-  styles: [`
-    :host {
-      display: block;
-    }
-
-    .field-shell {
-      display: grid;
-      gap: 7px;
-    }
-
-    .form-label {
-      margin: 0;
-      color: #5f564d;
-      font-size: 0.92rem;
-      font-weight: 700;
-      line-height: 1.25;
-      letter-spacing: 0.01em;
-    }
-
-    .required-mark {
-      color: #c24f3d;
-      font-weight: 700;
-    }
-  `],
 })
 export class EmployeeFormFieldComponent {
   readonly label = input.required<string>();

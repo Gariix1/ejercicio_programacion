@@ -20,13 +20,13 @@ export interface ReportFiltersValue {
   standalone: true,
   imports: [NgIf, FormsModule, UiButtonComponent],
   template: `
-    <section class="card shadow-sm filters-card" [class.filters-card--embedded]="embedded()">
+    <section class="card shadow-sm app-filter-panel" [class.app-filter-panel--embedded]="embedded()">
       <div class="card-body p-3 p-lg-4" [class.p-0]="embedded()">
-        <div class="filters-toolbar" [class.filters-toolbar--mobile-open]="advancedOpen">
-          <div class="toolbar-field toolbar-field--search">
-            <label class="form-label">Nombre</label>
+        <div class="app-filter-toolbar filters-toolbar" [class.filters-toolbar--mobile-open]="advancedOpen">
+          <div class="app-filter-field toolbar-field--search">
+            <label class="form-label app-filter-label">Nombre</label>
             <input
-              class="form-control"
+              class="form-control app-filter-control"
               type="search"
               [(ngModel)]="draft.nombre"
               (ngModelChange)="onTextChange()"
@@ -34,10 +34,10 @@ export interface ReportFiltersValue {
             />
           </div>
 
-          <div class="toolbar-field toolbar-field--advanced">
-            <label class="form-label">Codigo</label>
+          <div class="app-filter-field app-filter-advanced">
+            <label class="form-label app-filter-label">Codigo</label>
             <input
-              class="form-control"
+              class="form-control app-filter-control"
               type="search"
               [(ngModel)]="draft.codigo"
               (ngModelChange)="onTextChange()"
@@ -45,9 +45,9 @@ export interface ReportFiltersValue {
             />
           </div>
 
-          <div class="toolbar-field toolbar-field--advanced toolbar-field--compact">
-            <label class="form-label">Ordenar por</label>
-            <select class="form-select" [(ngModel)]="draft.sortBy" (ngModelChange)="emitImmediate()">
+          <div class="app-filter-field app-filter-advanced toolbar-field--compact">
+            <label class="form-label app-filter-label">Ordenar por</label>
+            <select class="form-select app-filter-control" [(ngModel)]="draft.sortBy" (ngModelChange)="emitImmediate()">
               <option value="nombres">Nombres</option>
               <option value="cedula">Cedula</option>
               <option value="codigo_empleado">Codigo</option>
@@ -61,33 +61,33 @@ export interface ReportFiltersValue {
             </select>
           </div>
 
-          <div class="toolbar-field toolbar-field--advanced toolbar-field--compact">
-            <label class="form-label">Orden</label>
-            <select class="form-select" [(ngModel)]="draft.sortDir" (ngModelChange)="emitImmediate()">
+          <div class="app-filter-field app-filter-advanced toolbar-field--compact">
+            <label class="form-label app-filter-label">Orden</label>
+            <select class="form-select app-filter-control" [(ngModel)]="draft.sortDir" (ngModelChange)="emitImmediate()">
               <option value="asc">Ascendente</option>
               <option value="desc">Descendente</option>
             </select>
           </div>
 
-          <div class="toolbar-field toolbar-field--advanced toolbar-field--mini">
-            <label class="form-label">Filas</label>
-            <select class="form-select" [(ngModel)]="draft.perPage" (ngModelChange)="emitImmediate()">
+          <div class="app-filter-field app-filter-advanced toolbar-field--mini">
+            <label class="form-label app-filter-label">Filas</label>
+            <select class="form-select app-filter-control" [(ngModel)]="draft.perPage" (ngModelChange)="emitImmediate()">
               <option [ngValue]="20">20</option>
               <option [ngValue]="40">40</option>
               <option [ngValue]="80">80</option>
             </select>
           </div>
 
-          <div class="toolbar-actions toolbar-field--advanced">
+          <div class="app-filter-actions app-filter-advanced">
             <app-ui-button variant="outline-secondary" (click)="reset()">
               Limpiar
             </app-ui-button>
           </div>
 
-          <div class="toolbar-toggle">
+          <div class="app-filter-toggle">
             <app-ui-button variant="outline-secondary" (click)="toggleAdvanced()">
               {{ advancedOpen ? 'Ocultar filtros' : 'Filtros' }}
-              <span class="toolbar-toggle-count" *ngIf="activeCount() > 0">{{ activeCount() }}</span>
+              <span class="app-filter-toggle-count" *ngIf="activeCount() > 0">{{ activeCount() }}</span>
             </app-ui-button>
           </div>
         </div>
@@ -95,30 +95,6 @@ export interface ReportFiltersValue {
     </section>
   `,
   styles: [`
-    .filters-card {
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.82);
-    }
-
-    .filters-card--embedded {
-      border: 0;
-      background: transparent;
-      box-shadow: none !important;
-    }
-
-    .form-label {
-      display: inline-flex;
-      align-items: center;
-      min-height: 1rem;
-      margin-bottom: 0;
-      color: var(--text-soft);
-      font-size: var(--font-size-label);
-      font-weight: 600;
-      line-height: 1.1;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
     .filters-toolbar {
       display: grid;
       grid-template-columns:
@@ -132,47 +108,9 @@ export interface ReportFiltersValue {
       align-items: end;
     }
 
-    .toolbar-field {
-      display: grid;
-      gap: 6px;
-      align-content: start;
-      min-width: 0;
-    }
-
     .toolbar-field--compact,
     .toolbar-field--mini {
       min-width: 0;
-    }
-
-    .toolbar-actions {
-      display: flex;
-      justify-content: flex-end;
-      align-items: end;
-      min-width: 0;
-    }
-
-    .toolbar-toggle {
-      display: none;
-    }
-
-    .toolbar-toggle-count {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 20px;
-      height: 20px;
-      padding-inline: 6px;
-      border-radius: 999px;
-      background: rgba(49, 119, 165, 0.16);
-      color: #255c80;
-      font-size: 0.74rem;
-      font-weight: 700;
-      line-height: 1;
-    }
-
-    .form-control,
-    .form-select {
-      min-height: 40px;
     }
 
     @media (max-width: 992px) {
@@ -180,7 +118,7 @@ export interface ReportFiltersValue {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
-      .toolbar-actions {
+      .app-filter-actions {
         justify-content: flex-start;
       }
     }
@@ -195,29 +133,29 @@ export interface ReportFiltersValue {
         grid-column: 1 / -1;
       }
 
-      .toolbar-toggle {
+      .app-filter-toggle {
         display: flex;
         justify-content: flex-start;
         grid-column: 1 / -1;
       }
 
-      .toolbar-field--advanced,
-      .toolbar-actions {
+      .app-filter-advanced,
+      .app-filter-actions {
         display: none;
       }
 
-      .filters-toolbar.filters-toolbar--mobile-open .toolbar-field--advanced {
+      .filters-toolbar.filters-toolbar--mobile-open .app-filter-advanced {
         display: grid;
         grid-column: 1 / -1;
       }
 
-      .filters-toolbar.filters-toolbar--mobile-open .toolbar-actions {
+      .filters-toolbar.filters-toolbar--mobile-open .app-filter-actions {
         display: flex;
         justify-content: stretch;
         grid-column: 1 / -1;
       }
 
-      .filters-toolbar.filters-toolbar--mobile-open .toolbar-actions app-ui-button {
+      .filters-toolbar.filters-toolbar--mobile-open .app-filter-actions app-ui-button {
         width: 100%;
       }
     }

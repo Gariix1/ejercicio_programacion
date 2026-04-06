@@ -1,134 +1,17 @@
-import { NgFor, NgIf, formatNumber } from '@angular/common';
+import { NgFor, NgIf } from '@angular/common';
 import { Component, input, output } from '@angular/core';
 import { HorizontalScrollShellComponent } from '../../../shared/horizontal-scroll-shell.component';
 import { OverflowTextComponent } from '../../../shared/overflow-text.component';
 import { Employee, EmployeeSortField } from '../../employees/models/employee.model';
 import { EmployeesReportResult } from '../models/report.model';
-
-type ReportColumnWidth = 'compact' | 'short' | 'date' | 'standard' | 'wide' | 'xwide';
-type ReportColumnCellType = 'plain' | 'overflow';
-type ReportColumnAlign = 'left' | 'center';
-
-interface ReportColumn {
-  key: string;
-  label: string;
-  width: ReportColumnWidth;
-  sortBy?: EmployeeSortField;
-  cellType?: ReportColumnCellType;
-  align?: ReportColumnAlign;
-  cellClass?: string;
-  value: (employee: Employee) => string;
-}
-
-const textOrDash = (value: string | null | undefined): string => {
-  const normalized = value?.trim() ?? '';
-  return normalized.length > 0 ? normalized : '-';
-};
-
-const DEFAULT_REPORT_COLUMNS: ReportColumn[] = [
-  {
-    key: 'full_name',
-    label: 'Nombre',
-    width: 'wide',
-    sortBy: 'nombres',
-    cellType: 'overflow',
-    cellClass: 'cell-name',
-    value: (employee) => `${employee.nombres} ${employee.apellidos}`.trim(),
-  },
-  {
-    key: 'cedula',
-    label: 'Cedula',
-    width: 'short',
-    sortBy: 'cedula',
-    value: (employee) => textOrDash(employee.cedula),
-  },
-  {
-    key: 'codigo_empleado',
-    label: 'Codigo',
-    width: 'compact',
-    sortBy: 'codigo_empleado',
-    value: (employee) => textOrDash(employee.codigo_empleado),
-  },
-  {
-    key: 'direccion',
-    label: 'Direccion',
-    width: 'xwide',
-    cellType: 'overflow',
-    value: (employee) => textOrDash(employee.direccion),
-  },
-  {
-    key: 'telefono',
-    label: 'Telefono',
-    width: 'short',
-    value: (employee) => textOrDash(employee.telefono),
-  },
-  {
-    key: 'fecha_ingreso',
-    label: 'Fecha ingreso',
-    width: 'date',
-    sortBy: 'fecha_ingreso',
-    value: (employee) => textOrDash(employee.fecha_ingreso),
-  },
-  {
-    key: 'cargo',
-    label: 'Cargo',
-    width: 'standard',
-    sortBy: 'cargo',
-    cellType: 'overflow',
-    value: (employee) => textOrDash(employee.cargo),
-  },
-  {
-    key: 'departamento',
-    label: 'Departamento',
-    width: 'standard',
-    sortBy: 'departamento',
-    cellType: 'overflow',
-    value: (employee) => textOrDash(employee.departamento),
-  },
-  {
-    key: 'sueldo',
-    label: 'Sueldo',
-    width: 'compact',
-    sortBy: 'sueldo',
-    value: (employee) => formatNumber(employee.sueldo, 'en-US', '1.2-2'),
-  },
-  {
-    key: 'jornada_parcial_label',
-    label: 'Jornada',
-    width: 'compact',
-    value: (employee) => textOrDash(employee.jornada_parcial_label),
-  },
-  {
-    key: 'estado_nombre',
-    label: 'Estado',
-    width: 'compact',
-    sortBy: 'estado_nombre',
-    value: (employee) => textOrDash(employee.estado_nombre),
-  },
-  {
-    key: 'provincia_display',
-    label: 'Provincia',
-    width: 'standard',
-    sortBy: 'provincia_laboral_nombre',
-    cellType: 'overflow',
-    value: (employee) => textOrDash(employee.provincia_laboral_nombre || employee.provincia_personal_nombre),
-  },
-  {
-    key: 'email',
-    label: 'Email',
-    width: 'xwide',
-    sortBy: 'email',
-    cellType: 'overflow',
-    value: (employee) => textOrDash(employee.email),
-  },
-];
+import { DEFAULT_REPORT_COLUMNS, ReportColumn } from './report-table.columns';
 
 @Component({
   selector: 'app-report-table',
   standalone: true,
   imports: [NgFor, NgIf, OverflowTextComponent, HorizontalScrollShellComponent],
   template: `
-    <section class="card shadow-sm report-table-card">
+    <section class="app-table-panel app-table-panel--flush">
       <app-horizontal-scroll-shell
         mobileHint="Desliza la tabla para ver mas columnas →"
         desktopHint="Desplaza horizontalmente la tabla para ver mas columnas →"
@@ -206,12 +89,6 @@ const DEFAULT_REPORT_COLUMNS: ReportColumn[] = [
       --report-col-standard: 136px;
       --report-col-wide: 220px;
       --report-col-xwide: 200px;
-    }
-
-    .report-table-card {
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.88);
-      border-radius: 14px;
     }
 
     .report-table {

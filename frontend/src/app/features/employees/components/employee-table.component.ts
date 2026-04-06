@@ -8,12 +8,12 @@ import { Employee, EmployeeListResult, EmployeeSortField } from '../models/emplo
   standalone: true,
   imports: [NgFor, NgIf, HorizontalScrollShellComponent],
   template: `
-    <section class="table-card" [class.table-card--embedded]="embedded()">
-      <div class="table-head">
+    <section class="app-table-panel" [class.app-table-panel--embedded]="embedded()">
+      <div class="app-table-header">
         <div>
-          <h3>Empleados registrados</h3>
+          <h3 class="app-table-title">Empleados registrados</h3>
         </div>
-        <span class="table-count">{{ result().pagination?.total ?? result().items.length }} registros</span>
+        <span class="app-table-count">{{ result().pagination?.total ?? result().items.length }} registros</span>
       </div>
 
       <app-horizontal-scroll-shell
@@ -68,7 +68,7 @@ import { Employee, EmployeeListResult, EmployeeSortField } from '../models/emplo
               </td>
               <td class="text-center">
                 <button
-                  class="btn btn-sm btn-outline-primary edit-button"
+                  class="edit-button"
                   type="button"
                   (click)="edit.emit(employee)"
                 >
@@ -79,7 +79,7 @@ import { Employee, EmployeeListResult, EmployeeSortField } from '../models/emplo
 
             <tr *ngIf="result().items.length === 0">
               <td colspan="4" class="empty-cell">
-                <div class="empty-state">
+                <div class="app-empty-state">
                   <strong>No encontramos empleados</strong>
                   <span>Prueba ajustando el nombre, el codigo o la cantidad de filas por pagina.</span>
                 </div>
@@ -89,57 +89,12 @@ import { Employee, EmployeeListResult, EmployeeSortField } from '../models/emplo
         </table>
       </app-horizontal-scroll-shell>
 
-      <div class="footer-note">
+      <div class="app-footer-note">
         <small class="text-muted">Usa el boton editar para abrir la ficha del empleado seleccionado.</small>
       </div>
     </section>
   `,
   styles: [`
-    .table-card {
-      display: grid;
-      gap: 12px;
-      padding: 18px;
-      border-radius: 16px;
-      border: 1px solid var(--border);
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 250, 244, 0.84) 100%);
-      box-shadow: 0 16px 30px rgba(73, 44, 24, 0.06);
-    }
-
-    .table-card--embedded {
-      padding: 0;
-      border: 0;
-      border-radius: 0;
-      background: transparent;
-      box-shadow: none;
-      gap: 14px;
-    }
-
-    .table-head {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .table-head h3 {
-      margin: 0;
-      color: var(--text-strong);
-      font-size: var(--font-size-section-title);
-      font-weight: 700;
-      line-height: var(--line-height-tight);
-    }
-
-    .table-count {
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(247, 198, 161, 0.28);
-      color: #8a4b1f;
-      font-size: var(--font-size-kicker);
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      white-space: nowrap;
-    }
-
     .module-table thead th {
       background: rgba(197, 228, 247, 0.55);
       border-bottom-width: 0;
@@ -215,8 +170,50 @@ import { Employee, EmployeeListResult, EmployeeSortField } from '../models/emplo
     }
 
     .edit-button {
-      min-width: 86px;
+      min-width: 88px;
+      min-height: 32px;
+      padding: 6px 14px;
+      border: 1px solid rgba(122, 178, 213, 0.42);
       border-radius: 999px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(228, 241, 250, 0.44) 100%);
+      color: #255c80;
+      font-size: 0.89rem;
+      font-weight: 600;
+      line-height: 1;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.42),
+        0 10px 18px rgba(49, 119, 165, 0.08);
+      backdrop-filter: blur(12px) saturate(1.1);
+      -webkit-backdrop-filter: blur(12px) saturate(1.1);
+      transition:
+        transform 160ms ease,
+        background-color 160ms ease,
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        color 160ms ease;
+    }
+
+    .edit-button:hover {
+      transform: translateY(-1px);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(210, 233, 248, 0.56) 100%);
+      border-color: rgba(92, 151, 190, 0.5);
+      color: #1f5f87;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.46),
+        0 14px 22px rgba(49, 119, 165, 0.12);
+    }
+
+    .edit-button:focus-visible {
+      outline: 0;
+      box-shadow:
+        0 0 0 0.2rem rgba(49, 119, 165, 0.14),
+        0 14px 24px rgba(49, 119, 165, 0.1);
+    }
+
+    .edit-button:active {
+      transform: translateY(0) scale(0.985);
     }
 
     .code-pill {
@@ -282,53 +279,7 @@ import { Employee, EmployeeListResult, EmployeeSortField } from '../models/emplo
       padding: 24px 14px;
     }
 
-    .empty-state {
-      display: grid;
-      gap: 6px;
-      justify-items: center;
-      padding: 18px;
-      border: 1px dashed rgba(103, 86, 67, 0.22);
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.72);
-      text-align: center;
-    }
-
-    .empty-state strong {
-      font-size: 0.98rem;
-    }
-
-    .empty-state span {
-      color: var(--muted);
-      font-size: 0.88rem;
-      max-width: 420px;
-      white-space: normal;
-    }
-
-    .footer-note {
-      display: flex;
-      justify-content: center;
-      text-align: center;
-    }
-
-    .footer-note small {
-      font-size: var(--font-size-caption);
-      color: var(--text-soft) !important;
-    }
-
     @media (max-width: 640px) {
-      .table-card {
-        padding: 14px;
-      }
-
-      .table-card--embedded {
-        padding: 0;
-      }
-
-      .table-head {
-        align-items: stretch;
-        flex-direction: column;
-      }
-
       .module-table {
         min-width: 640px;
       }
