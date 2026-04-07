@@ -284,6 +284,20 @@ mysql -u root -p < database/seed.sql
 - si abres el frontend en tu misma maquina, la API quedara en `http://localhost:8000/api`
 - si abres el frontend desde otro equipo en la red local, la API quedara en `http://IP-DEL-SERVIDOR:8000/api`
 
+### Manejo de API (resumen rapido)
+
+- base URL local: `http://localhost:8000/api`
+- health check: `GET /health`
+- formato de respuesta: `data`, `meta`, `links`
+
+Codigos HTTP usados en el proyecto:
+
+- `200 OK`: operacion exitosa
+- `201 Created`: recurso creado correctamente
+- `404 Not Found`: recurso o ruta no encontrada
+- `422 Unprocessable Entity`: error de validacion de datos
+- `500 Internal Server Error`: error interno no controlado
+
 ## Archivos locales que no deben subirse (incluidos en gitignore)
 
 - `backend/storage/uploads`

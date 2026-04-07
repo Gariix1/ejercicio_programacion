@@ -17,8 +17,8 @@ import { Employee, EmployeeListResult, EmployeeSortField } from '../models/emplo
       </div>
 
       <app-horizontal-scroll-shell
-        mobileHint="Desliza la tabla para ver mas columnas →"
-        desktopHint="Desplaza horizontalmente para ver mas columnas →"
+        mobileHint="Desliza la tabla para ver mas columnas ->"
+        desktopHint="Desplaza horizontalmente para ver mas columnas ->"
       >
         <table class="table table-sm align-middle mb-0 module-table">
           <colgroup>

@@ -101,8 +101,8 @@ import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, input } fro
   `],
 })
 export class HorizontalScrollShellComponent implements AfterViewInit, OnDestroy {
-  readonly mobileHint = input('Desliza para ver mas contenido →');
-  readonly desktopHint = input('Desplaza horizontalmente para ver mas contenido →');
+  readonly mobileHint = input('Desliza para ver mas contenido ->');
+  readonly desktopHint = input('Desplaza horizontalmente para ver mas contenido ->');
 
   @ViewChild('viewport') private readonly viewportRef?: ElementRef<HTMLDivElement>;
   @ViewChild('topScrollbar') private readonly topScrollbarRef?: ElementRef<HTMLDivElement>;

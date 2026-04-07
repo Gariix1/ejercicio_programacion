@@ -72,6 +72,29 @@ El backend estandariza respuestas con:
 
 Punto central: `backend/app/Core/Http/Controllers/ApiController.php`
 
+### Manejo de errores HTTP en la API
+
+Codigos actualmente usados en el proyecto:
+
+- `200 OK`: consultas y operaciones exitosas
+- `201 Created`: creacion de recursos (por ejemplo, alta de empleado y carga de foto)
+- `404 Not Found`: recurso no encontrado o ruta inexistente
+- `422 Unprocessable Entity`: errores de validacion de entrada
+- `500 Internal Server Error`: errores no controlados por handlers especificos
+
+Estructura de error para API:
+
+- `errors`: lista de errores (status, code, title, detail, source)
+- `meta.request_status`: estado general de la solicitud
+- `meta.error_type`: tipo de error (`VALIDATION_ERROR`, `RESOURCE_NOT_FOUND`)
+- `meta.error_count`: cantidad de errores
+
+Implementacion principal:
+
+- registro de handlers API: `backend/bootstrap/app.php`
+- construccion de payloads de error: `backend/app/Core/Support/ApiErrorResponse.php`
+- codigos de error semanticos: `backend/app/Core/Support/ApiErrorCode.php`
+
 ## Arquitectura frontend
 
 Organizacion principal en `frontend/src/app`:

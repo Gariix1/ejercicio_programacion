@@ -13,8 +13,8 @@ import { DEFAULT_REPORT_COLUMNS, ReportColumn } from './report-table.columns';
   template: `
     <section class="app-table-panel app-table-panel--flush">
       <app-horizontal-scroll-shell
-        mobileHint="Desliza la tabla para ver mas columnas →"
-        desktopHint="Desplaza horizontalmente la tabla para ver mas columnas →"
+        mobileHint="Desliza la tabla para ver mas columnas ->"
+        desktopHint="Desplaza horizontalmente la tabla para ver mas columnas ->"
       >
         <table class="table table-sm table-hover align-middle mb-0 report-table">
           <colgroup>

@@ -40,7 +40,7 @@ export interface ConfirmActionChangeItem {
 
               <div class="confirm-change-values" *ngIf="change.before !== undefined && change.after !== undefined; else singleValue">
                 <span class="confirm-change-before">{{ change.before }}</span>
-                <span class="confirm-change-arrow" aria-hidden="true">→</span>
+                <span class="confirm-change-arrow" aria-hidden="true">-></span>
                 <span class="confirm-change-after">{{ change.after }}</span>
               </div>
 
