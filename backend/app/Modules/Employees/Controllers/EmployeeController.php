@@ -6,20 +6,24 @@ namespace App\Modules\Employees\Controllers;
 
 use App\Core\Http\Controllers\ApiController;
 use App\Modules\Employees\DTOs\EmployeeListFilters;
+use App\Modules\Employees\Requests\DeleteEmployeePhotoRequest;
 use App\Modules\Employees\Requests\PatchEmployeeRequest;
 use App\Modules\Employees\Requests\StoreEmployeeRequest;
 use App\Modules\Employees\Requests\UploadEmployeePhotoRequest;
 use App\Modules\Employees\Requests\UpdateEmployeeRequest;
 use App\Modules\Employees\Resources\EmployeeResource;
+use App\Modules\Employees\Services\EmployeePhotoService;
 use App\Modules\Employees\Services\EmployeeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class EmployeeController extends ApiController
 {
-    public function __construct(private readonly EmployeeService $service)
+    public function __construct(
+        private readonly EmployeeService $service,
+        private readonly EmployeePhotoService $photoService,
+    )
     {
     }
 
@@ -48,19 +52,14 @@ final class EmployeeController extends ApiController
 
     public function uploadPhoto(UploadEmployeePhotoRequest $request): JsonResponse
     {
-        $file = $request->file('fotografia');
-        $path = $file->store('empleados', 'public');
+        $photo = $this->photoService->upload($request->file('fotografia'));
 
         return $this->documentResponse(
             [
                 'type' => 'employee-uploads',
-                'id' => pathinfo($path, PATHINFO_FILENAME),
+                'id' => pathinfo($photo['path'], PATHINFO_FILENAME),
                 'attributes' => [
-                    'path' => $path,
-                    'url' => $this->employeePhotoUrl($path),
-                    'original_name' => $file->getClientOriginalName(),
-                    'mime_type' => $file->getClientMimeType(),
-                    'size' => $file->getSize(),
+                    ...$photo,
                 ],
             ],
             201,
@@ -72,14 +71,32 @@ final class EmployeeController extends ApiController
         );
     }
 
+    public function deletePhoto(DeleteEmployeePhotoRequest $request): JsonResponse
+    {
+        $path = (string) $request->validated('path');
+        $this->photoService->deleteIfManaged($path);
+
+        return $this->documentResponse(
+            [
+                'type' => 'employee-uploads',
+                'id' => md5($path),
+                'attributes' => [
+                    'path' => $path,
+                    'deleted' => true,
+                ],
+            ],
+            200,
+            [
+                'module' => 'employees',
+                'message' => 'Fotografia descartada correctamente.',
+            ],
+            ['self' => url('/api/employees/photo')]
+        );
+    }
+
     public function showPhoto(string $path): BinaryFileResponse
     {
-        abort_unless($this->isSafeUploadPath($path), 404);
-        abort_unless(Storage::disk('public')->exists($path), 404);
-
-        return response()->file(Storage::disk('public')->path($path), [
-            'Cache-Control' => 'public, max-age=3600',
-        ]);
+        return $this->photoService->show($path);
     }
 
     public function store(StoreEmployeeRequest $request): JsonResponse
@@ -140,21 +157,5 @@ final class EmployeeController extends ApiController
             ],
             ['self' => url('/api/employees/' . $employee->id)]
         );
-    }
-
-    private function employeePhotoUrl(string $path): string
-    {
-        $segments = array_map('rawurlencode', explode('/', ltrim($path, '/')));
-
-        return url('/api/employee-photos/' . implode('/', $segments));
-    }
-
-    private function isSafeUploadPath(string $path): bool
-    {
-        if (trim($path) === '') {
-            return false;
-        }
-
-        return !str_contains($path, '..');
     }
 }

@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Reports\Repositories;
 
 use App\Modules\Employees\DTOs\EmployeeListFilters;
+use App\Modules\Employees\DTOs\EmployeeView;
 use App\Modules\Employees\Enums\EmployeeStatus;
 use App\Modules\Employees\Repositories\EmployeeRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 final class EmployeeReportRepository
@@ -19,6 +21,14 @@ final class EmployeeReportRepository
     public function all(EmployeeListFilters $filters): LengthAwarePaginator
     {
         return $this->employeeRepository->all($filters);
+    }
+
+    /**
+     * @return Collection<int, EmployeeView>
+     */
+    public function export(EmployeeListFilters $filters): Collection
+    {
+        return $this->employeeRepository->allForExport($filters);
     }
 
     public function summary(): array

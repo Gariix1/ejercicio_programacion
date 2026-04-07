@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Employees\Resources;
 
 use App\Modules\Employees\Enums\EmployeeStatus;
+use App\Modules\Employees\Services\EmployeePhotoService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 final class EmployeeResource extends JsonResource
@@ -12,6 +13,7 @@ final class EmployeeResource extends JsonResource
     public function toArray(Request $request): array
     {
         $status = EmployeeStatus::fromCode((int) $this->estado_codigo);
+        $statusLabel = $status?->label() ?? (string) $this->estado_nombre;
 
         return [
             'type' => 'employees',
@@ -36,7 +38,7 @@ final class EmployeeResource extends JsonResource
                 'jornada_parcial_label' => (bool) $this->jornada_parcial ? 'PARCIAL' : 'COMPLETA',
                 'observaciones_laborales' => $this->observaciones_laborales,
                 'estado_codigo' => (int) $this->estado_codigo,
-                'estado_nombre' => $this->estado_nombre,
+                'estado_nombre' => $statusLabel,
                 'estado_descripcion' => $status?->description(),
                 'created_at' => (string) $this->created_at,
                 'updated_at' => (string) $this->updated_at,
@@ -67,7 +69,7 @@ final class EmployeeResource extends JsonResource
                     ],
                     'meta' => [
                         'codigo' => (int) $this->estado_codigo,
-                        'nombre' => $this->estado_nombre,
+                        'nombre' => $statusLabel,
                         'descripcion' => $status?->description(),
                     ],
                 ],
@@ -80,12 +82,8 @@ final class EmployeeResource extends JsonResource
 
     private function resolvePhotoUrl(): ?string
     {
-        if (!is_string($this->fotografia) || trim($this->fotografia) === '') {
-            return null;
-        }
-
-        $segments = array_map('rawurlencode', explode('/', ltrim($this->fotografia, '/')));
-
-        return url('/api/employee-photos/' . implode('/', $segments));
+        return app(EmployeePhotoService::class)->resolveUrl(
+            is_string($this->fotografia) ? $this->fotografia : null
+        );
     }
 }

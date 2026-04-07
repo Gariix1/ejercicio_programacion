@@ -141,8 +141,8 @@ export class EmployeesReportPageComponent {
     {
       id: 'pdf',
       label: 'PDF',
-      description: 'Abre una version lista para imprimir o guardar como PDF.',
-      helper: 'Ideal para compartir, imprimir o conservar una copia formal del reporte.',
+      description: 'Abre una vista previa en otra pestaña, lista para imprimir o guardar como PDF.',
+      helper: 'Ideal si quieres revisar el documento en el navegador antes de imprimirlo o conservarlo.',
     },
     {
       id: 'csv',
@@ -186,12 +186,10 @@ export class EmployeesReportPageComponent {
       switchMap((params) => {
         this.filters = this.mapQueryParamsToFilters(params);
         const page = Number(params.get('page') ?? 1);
-        const terms = [this.filters.nombre, this.filters.codigo]
-          .map((term) => term.trim())
-          .filter((term) => term !== '');
 
         return this.reportsApiService.listEmployees({
-          search: terms.join(' '),
+          nombre: this.filters.nombre.trim(),
+          codigo: this.filters.codigo.trim(),
           sortBy: this.filters.sortBy,
           sortDir: this.filters.sortDir,
           page,
@@ -334,17 +332,17 @@ export class EmployeesReportPageComponent {
     const loadingCopy = this.buildExportLoadingCopy(format);
     const feedbackStartedAt = performance.now();
     this.openExportFeedback('loading', loadingCopy.title, loadingCopy.description);
-    const printWindow = format === 'pdf'
-      ? this.reportExportService.openPrintWindow('Reporte de empleados', printPreviewPath)
+    const previewWindow = format === 'pdf'
+      ? this.reportExportService.openPreviewWindow('Reporte de empleados', printPreviewPath)
       : null;
 
     try {
-      if (format === 'pdf' && !printWindow) {
+      if (format === 'pdf' && !previewWindow) {
         throw new Error('popup-blocked');
       }
 
       const vm = await firstValueFrom(this.vm$);
-      const rows = await this.loadExportRows(vm.report.items, vm.report.pagination?.last_page ?? 1);
+      const rows = await firstValueFrom(this.reportsApiService.exportEmployees(this.buildExportQuery()));
       const documentConfig = {
         fileName: this.buildExportFileName(),
         title: 'Reporte de empleados',
@@ -360,7 +358,7 @@ export class EmployeesReportPageComponent {
       } else if (format === 'json') {
         this.reportExportService.downloadJson(documentConfig);
       } else {
-        this.reportExportService.renderPrintDocument(printWindow, documentConfig, printPreviewPath);
+        this.reportExportService.renderPreviewDocument(previewWindow, documentConfig, printPreviewPath);
       }
 
       await ensureMinimumProcessFeedbackDuration(feedbackStartedAt);
@@ -374,8 +372,8 @@ export class EmployeesReportPageComponent {
         true,
       );
     } catch (error) {
-      if (printWindow && !printWindow.closed) {
-        printWindow.close();
+      if (previewWindow && !previewWindow.closed) {
+        previewWindow.close();
       }
 
       await ensureMinimumProcessFeedbackDuration(feedbackStartedAt);
@@ -407,7 +405,7 @@ export class EmployeesReportPageComponent {
       case 'pdf':
         return {
           title: 'Preparando PDF',
-          description: 'Estamos armando una vista lista para imprimir o guardar como PDF.',
+          description: 'Estamos preparando una vista previa que se abrira en otra pestaña para que puedas imprimirla o guardarla como PDF.',
         };
       case 'json':
         return {
@@ -427,7 +425,7 @@ export class EmployeesReportPageComponent {
       case 'pdf':
         return {
           title: 'PDF listo',
-          description: 'Se abrio una vista lista para imprimir o guardar como PDF desde tu navegador.',
+          description: 'Se abrio una vista previa del reporte en una nueva pestaña, sin sacarte de la aplicacion.',
         };
       case 'json':
         return {
@@ -446,14 +444,14 @@ export class EmployeesReportPageComponent {
     if (format === 'pdf' && error instanceof Error && error.message === 'popup-blocked') {
       return {
         title: 'No pudimos abrir el PDF',
-        description: 'Tu navegador bloqueo la ventana de impresion. Permite las ventanas emergentes e intentalo otra vez.',
+        description: 'Tu navegador bloqueo la nueva pestaña de vista previa. Permite las ventanas emergentes e intentalo otra vez.',
       };
     }
 
     return {
       title: 'No pudimos exportar el reporte',
       description: format === 'pdf'
-        ? 'Ocurrio un problema mientras preparabamos la vista imprimible del reporte.'
+        ? 'Ocurrio un problema mientras preparabamos la vista previa exportable del reporte.'
         : 'Ocurrio un problema mientras preparabamos el archivo exportable.',
     };
   }
@@ -494,31 +492,12 @@ export class EmployeesReportPageComponent {
     return count;
   }
 
-  private async loadExportRows(currentItems: Employee[], lastPage: number): Promise<Employee[]> {
-    if (lastPage <= 1) {
-      return currentItems;
-    }
-
-    const requests = Array.from({ length: lastPage }, (_, index) =>
-      firstValueFrom(this.reportsApiService.listEmployees(this.buildReportQuery(index + 1))),
-    );
-
-    const pages = await Promise.all(requests);
-
-    return pages.flatMap((page) => page.items);
-  }
-
-  private buildReportQuery(page: number): EmployeeListQuery {
-    const terms = [this.filters.nombre, this.filters.codigo]
-      .map((term) => term.trim())
-      .filter((term) => term !== '');
-
+  private buildExportQuery(): EmployeeListQuery {
     return {
-      search: terms.join(' '),
+      nombre: this.filters.nombre.trim(),
+      codigo: this.filters.codigo.trim(),
       sortBy: this.filters.sortBy,
       sortDir: this.filters.sortDir,
-      page,
-      perPage: this.filters.perPage,
     };
   }
 }

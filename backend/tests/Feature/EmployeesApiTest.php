@@ -71,6 +71,24 @@ class EmployeesApiTest extends TestCase
             ->assertJsonPath('data.0.attributes.nombres', 'Bruno');
     }
 
+    public function test_it_filters_employees_by_name_and_code_independently(): void
+    {
+        $this->insertEmployee([
+            'id' => 2,
+            'codigo_empleado' => 'E0002',
+            'nombres' => 'Bruno',
+            'apellidos' => 'Mora',
+            'cedula' => '1234567890',
+            'email' => 'bruno@example.com',
+        ]);
+
+        $this->getJson('/api/employees?nombre=Ana&codigo=E0001')
+            ->assertOk()
+            ->assertJsonPath('meta.pagination.total', 1)
+            ->assertJsonPath('data.0.attributes.nombres', 'Ana')
+            ->assertJsonPath('data.0.attributes.codigo_empleado', 'E0001');
+    }
+
     public function test_it_sorts_employees_by_name_in_ascending_order(): void
     {
         $this->insertEmployee([
@@ -88,22 +106,26 @@ class EmployeesApiTest extends TestCase
             ->assertJsonPath('data.1.attributes.nombres', 'Bruno');
     }
 
-    public function test_it_rejects_an_incoherent_employee_state(): void
+    public function test_it_derives_the_employee_state_label_from_the_status_code(): void
     {
         $payload = $this->validPayload([
             'codigo_empleado' => 'E0002',
             'cedula' => '1234567890',
             'email' => 'nuevo@example.com',
-            'estado_codigo' => 1,
-            'estado_nombre' => 'RETIRADO',
+            'estado_codigo' => 9,
+            'estado_nombre' => 'VIGENTE',
         ]);
 
         $this->postJson('/api/employees', $payload)
-            ->assertStatus(422)
-            ->assertJsonPath('meta.error_type', 'VALIDATION_ERROR')
-            ->assertJsonPath('errors.0.code', 'VALIDATION_ESTADO_CODIGO_INVALID')
-            ->assertJsonPath('errors.0.detail', 'El estado codigo y el estado nombre deben ser coherentes entre si.')
-            ->assertJsonPath('errors.0.source.field', 'estado_codigo');
+            ->assertCreated()
+            ->assertJsonPath('data.attributes.estado_codigo', 9)
+            ->assertJsonPath('data.attributes.estado_nombre', 'RETIRADO');
+
+        $this->assertDatabaseHas('empleados', [
+            'codigo_empleado' => 'E0002',
+            'estado_codigo' => 9,
+            'estado_nombre' => 'RETIRADO',
+        ]);
     }
 
     public function test_it_rejects_duplicate_employee_identity_fields(): void
@@ -239,6 +261,59 @@ class EmployeesApiTest extends TestCase
         $this->assertStringStartsWith('image/', (string) $photoResponse->headers->get('content-type'));
     }
 
+    public function test_it_preserves_external_photo_urls_in_employee_resources(): void
+    {
+        $this->insertEmployee([
+            'id' => 2,
+            'codigo_empleado' => 'E0002',
+            'cedula' => '1234567890',
+            'email' => 'bruno@example.com',
+            'fotografia' => 'https://i.pravatar.cc/300?img=59',
+        ]);
+
+        $this->getJson('/api/employees/2')
+            ->assertOk()
+            ->assertJsonPath('data.attributes.fotografia_url', 'https://i.pravatar.cc/300?img=59');
+    }
+
+    public function test_it_deletes_the_previous_managed_photo_when_updating_an_employee(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('empleados/anterior.jpg', 'old-image');
+
+        $this->insertEmployee([
+            'id' => 2,
+            'codigo_empleado' => 'E0002',
+            'cedula' => '1234567890',
+            'email' => 'bruno@example.com',
+            'fotografia' => 'empleados/anterior.jpg',
+        ]);
+
+        $payload = $this->validPayload([
+            'codigo_empleado' => 'E0002',
+            'cedula' => '1234567890',
+            'email' => 'bruno@example.com',
+            'fotografia' => 'empleados/nueva.jpg',
+        ]);
+
+        $this->putJson('/api/employees/2', $payload)
+            ->assertOk()
+            ->assertJsonPath('data.attributes.fotografia', 'empleados/nueva.jpg');
+
+        Storage::disk('public')->assertMissing('empleados/anterior.jpg');
+    }
+
+    public function test_it_deletes_the_managed_photo_when_an_employee_is_removed(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('empleados/ana.jpg', 'seed-image');
+
+        $this->deleteJson('/api/employees/1')
+            ->assertOk();
+
+        Storage::disk('public')->assertMissing('empleados/ana.jpg');
+    }
+
     public function test_it_deletes_an_employee(): void
     {
         $this->deleteJson('/api/employees/1')
@@ -275,7 +350,6 @@ class EmployeesApiTest extends TestCase
             'provincia_personal_id' => 1,
             'provincia_laboral_id' => 2,
             'estado_codigo' => 1,
-            'estado_nombre' => 'VIGENTE',
         ], $overrides);
     }
 

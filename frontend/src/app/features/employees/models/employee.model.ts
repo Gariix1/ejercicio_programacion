@@ -49,6 +49,8 @@ export type EmployeeSortField =
 
 export interface EmployeeListQuery {
   search?: string;
+  nombre?: string;
+  codigo?: string;
   sortBy?: EmployeeSortField;
   sortDir?: 'asc' | 'desc';
   page?: number;
@@ -75,7 +77,6 @@ export interface EmployeeUpsertPayload {
   provincia_personal_id: number;
   provincia_laboral_id: number;
   estado_codigo: number;
-  estado_nombre: string;
 }
 
 export interface EmployeeListResult {

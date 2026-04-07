@@ -31,7 +31,6 @@ export interface EmployeeFormValue {
   provincia_personal_id: number | null;
   provincia_laboral_id: number | null;
   estado_codigo: number;
-  estado_nombre: string;
 }
 
 export type EmployeeFormControls = {
@@ -61,7 +60,6 @@ export function createEmployeeFormValue(): EmployeeFormValue {
     provincia_personal_id: null,
     provincia_laboral_id: null,
     estado_codigo: 1,
-    estado_nombre: 'VIGENTE',
   };
 }
 
@@ -132,7 +130,6 @@ export function buildEmployeeForm(formBuilder: FormBuilder): EmployeeFormGroup {
         [Validators.required],
       ),
       estado_codigo: formBuilder.nonNullable.control(defaults.estado_codigo, [Validators.required]),
-      estado_nombre: formBuilder.nonNullable.control(defaults.estado_nombre, [Validators.required]),
     },
     {
       validators: [employeeDatesValidator()],
@@ -165,21 +162,10 @@ export function patchEmployeeForm(form: EmployeeFormGroup, employee: Employee): 
     provincia_personal_id: employee.provincia_personal_id,
     provincia_laboral_id: employee.provincia_laboral_id,
     estado_codigo: employee.estado_codigo,
-    estado_nombre: employee.estado_nombre,
-  });
-}
-
-export function syncEmployeeStatusLabel(form: EmployeeFormGroup): void {
-  const value = Number(form.controls.estado_codigo.value ?? 1);
-
-  form.patchValue({
-    estado_nombre: value === 9 ? 'RETIRADO' : 'VIGENTE',
   });
 }
 
 export function mapEmployeeFormToPayload(formValue: EmployeeFormValue): EmployeeUpsertPayload {
-  const estadoCodigo = Number(formValue.estado_codigo);
-
   return {
     codigo_empleado: String(formValue.codigo_empleado).trim().toUpperCase(),
     nombres: String(formValue.nombres).trim(),
@@ -199,8 +185,7 @@ export function mapEmployeeFormToPayload(formValue: EmployeeFormValue): Employee
     observaciones_laborales: normalizeOptional(formValue.observaciones_laborales),
     provincia_personal_id: Number(formValue.provincia_personal_id),
     provincia_laboral_id: Number(formValue.provincia_laboral_id),
-    estado_codigo: estadoCodigo,
-    estado_nombre: estadoCodigo === 9 ? 'RETIRADO' : 'VIGENTE',
+    estado_codigo: Number(formValue.estado_codigo),
   };
 }
 

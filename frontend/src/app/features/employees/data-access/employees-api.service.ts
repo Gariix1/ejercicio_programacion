@@ -81,4 +81,12 @@ export class EmployeesApiService {
       }>>(`${this.apiBaseUrl}/employees/photo`, formData)
       .pipe(map((response) => response.data.attributes));
   }
+
+  deletePhoto(path: string): Observable<void> {
+    const encodedPath = encodeURIComponent(path);
+
+    return this.http
+      .delete<ApiDocument<{ deleted: boolean }>>(`${this.apiBaseUrl}/employees/photo?path=${encodedPath}`)
+      .pipe(map(() => undefined));
+  }
 }

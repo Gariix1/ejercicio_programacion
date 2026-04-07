@@ -33,25 +33,6 @@ enum EmployeeStatus: int
         );
     }
 
-    public static function labels(): array
-    {
-        return array_map(
-            static fn (self $status): string => $status->label(),
-            self::cases()
-        );
-    }
-
-    public static function isCoherent(int $code, string $label): bool
-    {
-        $status = self::tryFrom($code);
-
-        if ($status === null) {
-            return false;
-        }
-
-        return $status->label() === strtoupper($label);
-    }
-
     public static function fromCode(int $code): ?self
     {
         return self::tryFrom($code);

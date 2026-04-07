@@ -13,7 +13,7 @@ import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, input } fro
       </div>
 
       <div
-        *ngIf="hasHorizontalOverflow"
+        *ngIf="hasHorizontalOverflow && showTopScrollbar"
         class="scrollbar-top"
         #topScrollbar
         (scroll)="onTopScrollbarScroll()"
@@ -64,6 +64,8 @@ import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, input } fro
       overflow-y: hidden;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior-x: contain;
+      overscroll-behavior-y: auto;
+      touch-action: pan-x pan-y;
       padding-bottom: 2px;
     }
 
@@ -74,6 +76,8 @@ import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, input } fro
       overflow-y: hidden;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior-x: contain;
+      overscroll-behavior-y: auto;
+      touch-action: pan-x pan-y;
       padding-bottom: 2px;
       margin-bottom: 8px;
     }
@@ -88,6 +92,12 @@ import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, input } fro
       }
     }
 
+    @media (hover: none) and (pointer: coarse) {
+      .scroll-viewport {
+        padding-bottom: 4px;
+      }
+    }
+
   `],
 })
 export class HorizontalScrollShellComponent implements AfterViewInit, OnDestroy {
@@ -99,17 +109,29 @@ export class HorizontalScrollShellComponent implements AfterViewInit, OnDestroy 
 
   protected hasHorizontalOverflow = false;
   protected scrollContentWidth = 0;
+  protected showTopScrollbar = true;
 
   private readonly overflowThreshold = 24;
   private resizeObserver?: ResizeObserver;
   private metricsFrameId: number | null = null;
   private isSyncingScroll = false;
+  private pointerMediaQuery?: MediaQueryList;
+  private readonly pointerMediaQueryHandler = () => {
+    this.showTopScrollbar = this.pointerMediaQuery?.matches ?? true;
+    this.scheduleMetricsUpdate();
+  };
 
   ngAfterViewInit(): void {
     const viewport = this.viewportRef?.nativeElement;
 
     if (!viewport) {
       return;
+    }
+
+    if (typeof window !== 'undefined') {
+      this.pointerMediaQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
+      this.pointerMediaQueryHandler();
+      this.pointerMediaQuery.addEventListener?.('change', this.pointerMediaQueryHandler);
     }
 
     this.resizeObserver = new ResizeObserver(() => {
@@ -128,6 +150,7 @@ export class HorizontalScrollShellComponent implements AfterViewInit, OnDestroy 
 
   ngOnDestroy(): void {
     this.resizeObserver?.disconnect();
+    this.pointerMediaQuery?.removeEventListener?.('change', this.pointerMediaQueryHandler);
 
     if (this.metricsFrameId !== null) {
       cancelAnimationFrame(this.metricsFrameId);
@@ -174,7 +197,7 @@ export class HorizontalScrollShellComponent implements AfterViewInit, OnDestroy 
     const viewport = this.viewportRef?.nativeElement;
     const topScrollbar = this.topScrollbarRef?.nativeElement;
 
-    if (!viewport || !topScrollbar || this.isSyncingScroll) {
+    if (!viewport || !topScrollbar || this.isSyncingScroll || !this.showTopScrollbar) {
       return;
     }
 
@@ -187,7 +210,7 @@ export class HorizontalScrollShellComponent implements AfterViewInit, OnDestroy 
     const viewport = this.viewportRef?.nativeElement;
     const topScrollbar = this.topScrollbarRef?.nativeElement;
 
-    if (!viewport || !topScrollbar || this.isSyncingScroll) {
+    if (!viewport || !topScrollbar || this.isSyncingScroll || !this.showTopScrollbar) {
       return;
     }
 

@@ -97,32 +97,26 @@ export interface EmployeeFiltersValue {
       }
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: 768px) {
       .filters-toolbar {
         grid-template-columns: minmax(0, 1fr);
         gap: 10px;
       }
 
       .app-filter-toggle {
-        display: flex;
-        justify-content: flex-start;
-      }
-
-      .app-filter-advanced,
-      .app-filter-actions {
         display: none;
       }
 
-      .filters-toolbar.filters-toolbar--mobile-open .app-filter-advanced {
+      .app-filter-advanced {
         display: grid;
       }
 
-      .filters-toolbar.filters-toolbar--mobile-open .app-filter-actions {
+      .app-filter-actions {
         display: flex;
         justify-content: stretch;
       }
 
-      .filters-toolbar.filters-toolbar--mobile-open .app-filter-actions app-ui-button {
+      .app-filter-actions app-ui-button {
         width: 100%;
       }
     }

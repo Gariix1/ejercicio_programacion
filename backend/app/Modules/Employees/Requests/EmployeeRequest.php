@@ -8,7 +8,6 @@ use App\Modules\Employees\Enums\EmployeeStatus;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Support\EmployeeValidation;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Validator;
 
 abstract class EmployeeRequest extends FormRequest
 {
@@ -32,7 +31,28 @@ abstract class EmployeeRequest extends FormRequest
         'provincia_personal_id',
         'provincia_laboral_id',
         'estado_codigo',
-        'estado_nombre',
+    ];
+
+    private const DEFAULT_INPUTS = [
+        'codigo_empleado' => '',
+        'nombres' => '',
+        'apellidos' => '',
+        'cedula' => '',
+        'telefono' => '',
+        'direccion' => '',
+        'fecha_nacimiento' => '',
+        'email' => '',
+        'fotografia' => '',
+        'observaciones_personales' => '',
+        'fecha_ingreso' => '',
+        'cargo' => '',
+        'departamento' => '',
+        'sueldo' => null,
+        'jornada_parcial' => false,
+        'observaciones_laborales' => '',
+        'provincia_personal_id' => null,
+        'provincia_laboral_id' => null,
+        'estado_codigo' => EmployeeStatus::VIGENTE->value,
     ];
 
     public function authorize(): bool
@@ -50,18 +70,6 @@ abstract class EmployeeRequest extends FormRequest
         return EmployeeValidation::rules($ignoreId);
     }
 
-    public function withValidator(Validator $validator): void
-    {
-        $validator->after(function (Validator $validator): void {
-            $estadoCodigo = (int) $this->input('estado_codigo', 1);
-            $estadoNombre = strtoupper((string) $this->input('estado_nombre', 'VIGENTE'));
-
-            if (!EmployeeStatus::isCoherent($estadoCodigo, $estadoNombre)) {
-                $validator->errors()->add('estado_codigo', 'El estado codigo y el estado nombre deben ser coherentes entre si.');
-            }
-        });
-    }
-
     public function messages(): array
     {
         return EmployeeValidation::messages();
@@ -74,32 +82,7 @@ abstract class EmployeeRequest extends FormRequest
 
     protected function normalizedPayload(): array
     {
-        return [
-            'codigo_empleado' => strtoupper(trim((string) $this->input('codigo_empleado', ''))),
-            'nombres' => trim((string) $this->input('nombres', '')),
-            'apellidos' => trim((string) $this->input('apellidos', '')),
-            'cedula' => trim((string) $this->input('cedula', '')),
-            'telefono' => $this->normalizeOptionalDigits('telefono'),
-            'direccion' => $this->normalizeOptionalText('direccion'),
-            'fecha_nacimiento' => (string) $this->input('fecha_nacimiento', ''),
-            'email' => strtolower(trim((string) $this->input('email', ''))),
-            'fotografia' => $this->normalizeOptionalText('fotografia'),
-            'observaciones_personales' => $this->normalizeOptionalText('observaciones_personales'),
-            'fecha_ingreso' => (string) $this->input('fecha_ingreso', ''),
-            'cargo' => trim((string) $this->input('cargo', '')),
-            'departamento' => trim((string) $this->input('departamento', '')),
-            'sueldo' => $this->input('sueldo'),
-            'jornada_parcial' => filter_var(
-                $this->input('jornada_parcial', false),
-                FILTER_VALIDATE_BOOL,
-                FILTER_NULL_ON_FAILURE
-            ) ?? false,
-            'observaciones_laborales' => $this->normalizeOptionalText('observaciones_laborales'),
-            'provincia_personal_id' => $this->input('provincia_personal_id'),
-            'provincia_laboral_id' => $this->input('provincia_laboral_id'),
-            'estado_codigo' => $this->input('estado_codigo', 1),
-            'estado_nombre' => strtoupper((string) $this->input('estado_nombre', 'VIGENTE')),
-        ];
+        return $this->normalizeKeys(self::ATTRIBUTE_KEYS);
     }
 
     protected function mergedNormalizedPayloadWithCurrentEmployee(): array
@@ -110,8 +93,19 @@ abstract class EmployeeRequest extends FormRequest
 
         foreach (self::ATTRIBUTE_KEYS as $key) {
             if ($this->exists($key)) {
-                $normalized[$key] = $this->normalizedValueFor($key);
+                $normalized[$key] = $this->normalizeInputValue($key);
             }
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeKeys(array $keys): array
+    {
+        $normalized = [];
+
+        foreach ($keys as $key) {
+            $normalized[$key] = $this->normalizeInputValue($key, self::DEFAULT_INPUTS[$key] ?? null);
         }
 
         return $normalized;
@@ -131,24 +125,25 @@ abstract class EmployeeRequest extends FormRequest
         return $value !== '' ? $value : null;
     }
 
-    private function normalizedValueFor(string $key): mixed
+    private function normalizeInputValue(string $key, mixed $default = null): mixed
     {
+        $value = $this->input($key, $default);
+
         return match ($key) {
-            'codigo_empleado' => strtoupper(trim((string) $this->input($key, ''))),
-            'nombres', 'apellidos', 'cargo', 'departamento' => trim((string) $this->input($key, '')),
-            'cedula' => trim((string) $this->input($key, '')),
+            'codigo_empleado' => strtoupper(trim((string) $value)),
+            'nombres', 'apellidos', 'cargo', 'departamento' => trim((string) $value),
+            'cedula' => trim((string) $value),
             'telefono' => $this->normalizeOptionalDigits($key),
             'direccion', 'fotografia', 'observaciones_personales', 'observaciones_laborales' => $this->normalizeOptionalText($key),
-            'email' => strtolower(trim((string) $this->input($key, ''))),
-            'fecha_nacimiento', 'fecha_ingreso' => (string) $this->input($key, ''),
-            'sueldo', 'provincia_personal_id', 'provincia_laboral_id', 'estado_codigo' => $this->input($key),
+            'email' => strtolower(trim((string) $value)),
+            'fecha_nacimiento', 'fecha_ingreso' => (string) $value,
+            'sueldo', 'provincia_personal_id', 'provincia_laboral_id', 'estado_codigo' => $value,
             'jornada_parcial' => filter_var(
-                $this->input($key, false),
+                $value,
                 FILTER_VALIDATE_BOOL,
                 FILTER_NULL_ON_FAILURE
             ) ?? false,
-            'estado_nombre' => strtoupper((string) $this->input($key, '')),
-            default => $this->input($key),
+            default => $value,
         };
     }
 }

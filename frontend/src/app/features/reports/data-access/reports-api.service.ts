@@ -4,7 +4,7 @@ import { map, Observable } from 'rxjs';
 import { API_BASE_URL } from '../../../core/api.config';
 import { ApiDocument, ApiResource } from '../../../core/api.types';
 import { buildListQueryParams } from '../../../shared/query-utils';
-import { EmployeeListQuery } from '../../employees/models/employee.model';
+import { Employee, EmployeeListQuery } from '../../employees/models/employee.model';
 import {
   EmployeeApiResource,
   mapEmployeeResource,
@@ -46,6 +46,18 @@ export class ReportsApiService {
         links: response.links,
       })),
     );
+  }
+
+  exportEmployees(query: EmployeeListQuery = {}): Observable<Employee[]> {
+    const params = buildListQueryParams(query);
+
+    const url = params.size > 0
+      ? `${this.apiBaseUrl}/reports/employees/export?${params.toString()}`
+      : `${this.apiBaseUrl}/reports/employees/export`;
+
+    return this.http
+      .get<ApiDocument<EmployeeApiResource[]>>(url)
+      .pipe(map((response) => response.data.map((resource) => mapEmployeeResource(resource))));
   }
 
   summary(): Observable<EmployeeReportSummaryResult> {

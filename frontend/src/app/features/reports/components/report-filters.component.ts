@@ -123,39 +123,31 @@ export interface ReportFiltersValue {
       }
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: 768px) {
       .filters-toolbar {
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: minmax(0, 1fr);
         gap: 10px;
       }
 
       .toolbar-field--search {
-        grid-column: 1 / -1;
+        grid-column: auto;
       }
 
       .app-filter-toggle {
-        display: flex;
-        justify-content: flex-start;
-        grid-column: 1 / -1;
-      }
-
-      .app-filter-advanced,
-      .app-filter-actions {
         display: none;
       }
 
-      .filters-toolbar.filters-toolbar--mobile-open .app-filter-advanced {
+      .app-filter-advanced {
         display: grid;
-        grid-column: 1 / -1;
+        grid-column: auto;
       }
 
-      .filters-toolbar.filters-toolbar--mobile-open .app-filter-actions {
+      .app-filter-actions {
         display: flex;
         justify-content: stretch;
-        grid-column: 1 / -1;
       }
 
-      .filters-toolbar.filters-toolbar--mobile-open .app-filter-actions app-ui-button {
+      .app-filter-actions app-ui-button {
         width: 100%;
       }
     }

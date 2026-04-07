@@ -186,6 +186,8 @@ export class EmployeesListPageComponent implements OnInit, OnDestroy {
 
   readonly query: Required<EmployeeListQuery> = {
     search: '',
+    nombre: '',
+    codigo: '',
     sortBy: 'nombres',
     sortDir: 'asc',
     page: 1,
@@ -223,12 +225,9 @@ export class EmployeesListPageComponent implements OnInit, OnDestroy {
   protected onFiltersChange(value: EmployeeFiltersValue): void {
     this.filters = value;
 
-    const terms = [value.nombre, value.codigo]
-      .map((term) => term.trim())
-      .filter((term) => term !== '');
-
     this.updateQuery({
-      search: terms.join(' '),
+      nombre: value.nombre.trim(),
+      codigo: value.codigo.trim(),
       perPage: value.perPage,
       page: 1,
     });
@@ -268,7 +267,7 @@ export class EmployeesListPageComponent implements OnInit, OnDestroy {
 
   protected clearFilters(): void {
     this.filters = { nombre: '', codigo: '', perPage: 20 };
-    this.updateQuery({ search: '', perPage: 20, page: 1 });
+    this.updateQuery({ search: '', nombre: '', codigo: '', perPage: 20, page: 1 });
   }
 
   protected dismissFlashMessage(): void {

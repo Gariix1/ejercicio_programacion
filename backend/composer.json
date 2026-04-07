@@ -41,7 +41,9 @@
             "@php artisan key:generate"
         ],
         "serve": "@php artisan serve --host=127.0.0.1 --port=8000",
+        "serve:lan": "@php artisan serve --host=0.0.0.0 --port=8000",
         "dev": "@php artisan serve --host=127.0.0.1 --port=8000",
+        "dev:lan": "@php artisan serve --host=0.0.0.0 --port=8000",
         "test": [
             "@php artisan config:clear --ansi",
             "@php artisan test"

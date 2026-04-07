@@ -29,7 +29,7 @@ class EmployeeDataTest extends TestCase
             'provincia_personal_id' => 1,
             'provincia_laboral_id' => 2,
             'estado_codigo' => 9,
-            'estado_nombre' => 'RETIRADO',
+            'estado_nombre' => 'VIGENTE',
         ]);
 
         $this->assertSame([

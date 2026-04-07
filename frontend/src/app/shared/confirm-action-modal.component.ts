@@ -75,6 +75,9 @@ export interface ConfirmActionChangeItem {
       display: grid;
       place-items: center;
       padding: 20px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
       background: rgba(18, 28, 38, 0.2);
       backdrop-filter: blur(18px) saturate(1.14);
       animation: confirmBackdropIn 200ms ease both;
@@ -82,9 +85,13 @@ export interface ConfirmActionChangeItem {
 
     .confirm-modal {
       width: min(100%, 560px);
+      max-height: calc(100dvh - 40px);
       display: grid;
       gap: 18px;
       padding: 24px;
+      overflow: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
       border-radius: 28px;
       border: 1px solid rgba(255, 255, 255, 0.34);
       background:
@@ -234,6 +241,17 @@ export interface ConfirmActionChangeItem {
     }
 
     @media (max-width: 560px) {
+      .confirm-backdrop {
+        place-items: start center;
+        padding: 12px;
+      }
+
+      .confirm-modal {
+        max-height: calc(100dvh - 24px);
+        padding: 20px 16px;
+        border-radius: 24px;
+      }
+
       .confirm-header {
         grid-template-columns: 1fr;
       }
