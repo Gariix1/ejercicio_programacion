@@ -1,14 +1,38 @@
-# Arquitectura y herramientas
+# Documento tecnico integral del proyecto
 
-## Herramientas usadas
+Este documento describe la arquitectura, la componentizacion, los estandares de calidad y las reglas tecnicas del sistema de gestion de empleados.
 
-- backend: Laravel
-- frontend: Angular
+## Alcance del documento
+
+Este documento cubre:
+
+- arquitectura backend y frontend
+- funcionalidades principales y su ubicacion
+- componentizacion por modulos
+- reglas de validacion y negocio clave
+- estandares de calidad y pruebas
+- decisiones tecnicas de API, exportacion y manejo de archivos
+
+Este documento no intenta listar cada linea de codigo, pero si concentra la base tecnica necesaria para mantener, extender y defender la calidad del proyecto.
+
+## Propuesta de valor tecnica del sistema
+
+- arquitectura modular por dominio (`Employees`, `Reports`, `Provinces`)
+- separacion clara por capas (controladores, requests, servicios, repositorios)
+- contrato de API consistente (`data`, `meta`, `links`)
+- frontend por features con lazy loading para escalar sin acoplamiento excesivo
+- pruebas automatizadas de endpoints y reglas de negocio
+- soporte de exportaciones operativas (CSV, JSON y vista imprimible)
+
+## Stack y plataforma
+
+- backend: Laravel 13
+- frontend: Angular 18
 - base de datos: MySQL 8
-- estilos base: Bootstrap 4 + SCSS
+- estilos: Bootstrap 4 + SCSS
 - pruebas backend: PHPUnit
 
-## Estructura general
+## Estructura general del repositorio
 
 ```text
 backend/
@@ -16,62 +40,87 @@ frontend/
 database/
 ```
 
-- `backend`: API y reglas de negocio
-- `frontend`: interfaz y experiencia de usuario
+- `backend`: API, validaciones, servicios, repositorios y recursos
+- `frontend`: UI, formularios, componentes, data-access y rutas
 - `database`: esquema y datos semilla
 
-## Arquitectura usada
+## Arquitectura backend
 
-### Backend
+Flujo por request:
 
-El backend sigue este flujo:
+`Route -> Controller -> FormRequest -> Service -> Repository -> Database`
 
-`Route -> Controller -> Request -> Service -> Repository -> Database`
+Ubicaciones base:
 
-Ubicacion principal:
+- rutas API: `backend/routes/api.php`
+- capa base HTTP y respuestas: `backend/app/Core`
+- modulos de dominio: `backend/app/Modules`
 
-- `backend/routes/api.php`
-- `backend/app/Core`
-- `backend/app/Modules`
+Modulos actuales:
 
-Dominios:
+- `Employees`
+- `Reports`
+- `Provinces`
 
-- `backend/app/Modules/Employees`
-- `backend/app/Modules/Provinces`
-- `backend/app/Modules/Reports`
+### Contrato de API
 
-### Frontend
+El backend estandariza respuestas con:
 
-El frontend se organiza por:
+- `data`: payload principal
+- `meta`: metadatos (modulo, paginacion, mensajes)
+- `links`: enlaces de navegacion o autoreferencia
 
-- `core`
-- `shared`
-- `features`
+Punto central: `backend/app/Core/Http/Controllers/ApiController.php`
 
-Ubicacion principal:
+## Arquitectura frontend
 
-- `frontend/src/app/core`
-- `frontend/src/app/shared`
-- `frontend/src/app/features`
+Organizacion principal en `frontend/src/app`:
 
-## Donde esta la logica de cada cosa
+- `core`: configuracion global (API base y tipos base)
+- `shared`: componentes y utilidades reutilizables
+- `features`: modulos funcionales aislados
+
+Rutas principales:
+
+- `app.routes.ts` redirige al modulo de empleados
+- carga diferida por modulo (`employees.routes.ts`, `reports.routes.ts`)
+
+Patron por feature:
+
+- `pages`: paginas contenedoras
+- `components`: componentes de UI
+- `data-access`: servicios HTTP
+- `models`: modelos y adaptadores de datos
+- `forms`: estado, validaciones y utilidades del formulario
+
+## Funcionalidades principales
+
+- CRUD de empleados (listar, crear, ver, editar, eliminar)
+- filtros, busqueda, ordenamiento y paginacion en empleados
+- carga, visualizacion y eliminacion controlada de fotografia
+- catalogo de provincias para datos personales y laborales
+- reportes de empleados (listado, resumen y exportacion)
+- exportaciones desde frontend (CSV, JSON y vista para impresion)
+
+## Componentizacion y responsabilidad por modulo
 
 ### Empleados
 
 Backend:
 
 - controladores: `backend/app/Modules/Employees/Controllers`
-- validacion: `backend/app/Modules/Employees/Requests`
-- servicios: `backend/app/Modules/Employees/Services`
+- validacion de entrada: `backend/app/Modules/Employees/Requests`
+- servicios de negocio: `backend/app/Modules/Employees/Services`
 - persistencia: `backend/app/Modules/Employees/Repositories`
+- transformacion de salida: `backend/app/Modules/Employees/Resources`
 
 Frontend:
 
 - paginas: `frontend/src/app/features/employees/pages`
 - componentes: `frontend/src/app/features/employees/components`
-- formularios y utilidades: `frontend/src/app/features/employees/forms`
-- acceso a API: `frontend/src/app/features/employees/data-access`
-- modelos: `frontend/src/app/features/employees/models`
+- formularios/utilidades: `frontend/src/app/features/employees/forms`
+- API client: `frontend/src/app/features/employees/data-access`
+- modelos y mapeos: `frontend/src/app/features/employees/models`
 
 ### Reportes
 
@@ -85,35 +134,91 @@ Frontend:
 
 - paginas: `frontend/src/app/features/reports/pages`
 - componentes: `frontend/src/app/features/reports/components`
-- acceso a API: `frontend/src/app/features/reports/data-access`
+- API client: `frontend/src/app/features/reports/data-access`
+- modelos: `frontend/src/app/features/reports/models`
 
-### Catalogo de provincias
+### Provincias
 
 Backend:
 
-- `backend/app/Modules/Provinces`
+- modulo: `backend/app/Modules/Provinces`
 
-Base de datos:
+Frontend:
 
-- `database/schema.sql`
-- `database/seed.sql`
+- modelos y consumo: `frontend/src/app/features/provinces`
 
-## Componentes compartidos importantes
+## Reglas de negocio y algoritmos relevantes
 
-En `frontend/src/app/shared`:
+- estado de empleado por codigo: `1 -> VIGENTE`, `9 -> RETIRADO`
+- validacion de identidad unica para `codigo_empleado` y `cedula`
+- validaciones temporales: `fecha_nacimiento < hoy`, `fecha_ingreso <= hoy` y `fecha_ingreso > fecha_nacimiento`
+- `sueldo` debe ser numerico y mayor que cero
+- filtros de listado independientes por nombre, codigo y busqueda libre
+- ordenamiento parametrizable por columnas permitidas
+- paginacion con metadatos (`current_page`, `per_page`, `total`, `last_page`)
+- ciclo de foto administrada: upload, reemplazo seguro y eliminacion controlada
 
-- `top-nav.component.ts`
-- `ui-button.component.ts`
-- `pagination-controls.component.ts`
-- `confirm-action-modal.component.ts`
-- `process-feedback-modal.component.ts`
-- `export-modal.component.ts`
-- `horizontal-scroll-shell.component.ts`
-- `report-export.service.ts`
+## Estandares de calidad tecnica
 
-## Notas tecnicas
+- separacion de responsabilidades por capas
+- validacion de entrada via FormRequest antes de la capa de negocio
+- respuestas JSON uniformes para simplificar integracion frontend
+- errores semanticos con `error_type` y codigos de validacion
+- cobertura funcional en pruebas de API para casos nominales y de error
+- convenciones de nombres estables por feature y por modulo
 
-- las fotografias se gestionan desde backend y se sirven por la API
-- los reportes exportan desde un endpoint dedicado
-- el frontend deriva la URL base de la API desde el host actual
-- Bootstrap se usa como base y el estilo del sistema se completa con SCSS propio
+## Pruebas y verificacion
+
+Backend:
+
+- feature tests: `backend/tests/Feature`
+- unit tests: `backend/tests/Unit`
+
+Casos cubiertos en feature tests incluyen:
+
+- lectura individual y listados paginados
+- filtros y ordenamiento
+- validaciones y errores de negocio
+- creacion, actualizacion completa y parcial
+- flujo de fotografia
+- reportes, resumen y exportacion
+- catalogo de provincias
+
+## Seguridad y estabilidad operativa
+
+- validaciones de entrada centralizadas por request
+- control de rutas de fotografia administrada para evitar accesos arbitrarios
+- campos criticos con reglas estrictas (longitud, tipo, unicidad, fechas)
+- separacion backend/frontend que reduce acoplamiento y facilita hardening por capa
+
+## Rendimiento y escalabilidad funcional
+
+- paginacion nativa en listados para evitar cargas masivas
+- lazy loading en rutas frontend para reducir tiempo inicial de carga
+- separacion por modulos que facilita evolucion incremental
+- repositorios por dominio para optimizar consultas sin contaminar controladores
+
+## Guia rapida de extension
+
+Si agregas un nuevo endpoint:
+
+- declarar ruta en `backend/routes/api.php`
+- crear/actualizar `Controller`, `Request`, `Service`, `Repository`, `Resource`
+- agregar cliente en `frontend/src/app/features/<modulo>/data-access`
+- ajustar modelos y componentes del feature
+- cubrir con pruebas de feature en backend
+
+Si agregas un nuevo campo de empleado:
+
+- actualizar `database/schema.sql` (si aplica)
+- extender reglas en `EmployeeValidation`
+- propagar a DTOs, repositorio, recurso y tests
+- actualizar formulario, modelo y mapeo frontend
+
+## Enfoque del documento
+
+Este proyecto se presenta como demo/ejercicio tecnico, por lo que este documento prioriza:
+
+- explicar como esta construido el sistema actual
+- mostrar criterios de diseno y calidad aplicados
+- facilitar mantenimiento y extension dentro del alcance del ejercicio
