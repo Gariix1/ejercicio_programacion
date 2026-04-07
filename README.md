@@ -50,7 +50,7 @@ Nota:
 
 ## Inicio rapido
 
-Este flujo esta pensado para Ubuntu. Si copias los comandos en el mismo orden, el proyecto queda listo para correr en local.
+Este flujo esta pensado para Ubuntu. Si se copian los comandos en el mismo orden, el proyecto queda listo para correr en local.
 
 ### 1. Instalar dependencias del sistema
 
