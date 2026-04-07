@@ -2,7 +2,14 @@
 
 Sistema de gestion de empleados con backend API en Laravel, frontend Angular y MySQL 8.
 
-## Que incluye
+## Stack del proyecto
+
+- backend: Laravel 13 sobre PHP 8.3+
+- frontend: Angular 18 sobre Node.js 20+
+- estilos: SCSS + Bootstrap 4
+- base de datos: MySQL 8
+
+## Funcionalidades principales
 
 - modulo de empleados con listado, filtros, paginacion y edicion
 - formulario de empleados con datos personales y laborales
@@ -10,84 +17,239 @@ Sistema de gestion de empleados con backend API en Laravel, frontend Angular y M
 - centro de reportes y reporte operativo de empleados
 - exportacion en `PDF`, `CSV` y `JSON`
 
-## Requisitos
+## Estructura
 
-- PHP 8.4+
-- Composer
-- Node.js 20+
-- npm
-- MySQL 8
-
-## 1. Cargar base de datos
-
-```bash
-mysql -uroot -proot < database/schema.sql
-mysql -uroot -proot < database/seed.sql
+```text
+backend/
+frontend/
+database/
 ```
 
-## 2. Correr backend
+- `backend`: API y reglas de negocio
+- `frontend`: interfaz y experiencia de usuario
+- `database`: esquema y datos semilla
+
+## Compatibilidad de instalacion
+
+- Ubuntu: es la distribucion principal documentada en este README
+- Fedora: tambien es compatible, pero usa `dnf` y cambia el nombre de algunos paquetes y servicios
+- compatibilidad verificada localmente en Fedora 43 con `php artisan test` y `npm run build`
+- el backend pide PHP `^8.3`, por lo que PHP 8.4 de Fedora tambien funciona
+- Angular 18 soporta Node.js `^20.11.1` y `^22.0.0`, por lo que Node.js 22 de Fedora tambien es valido
+
+Referencia rapida para Fedora:
 
 ```bash
-cd backend
-cp .env.example .env
-composer install
-php artisan key:generate
-php artisan serve
+sudo dnf install -y git curl unzip php php-cli php-common php-mbstring php-mysqlnd php-pdo php-xml php-pecl-zip composer nodejs mysql-server
+sudo systemctl enable --now mysqld
 ```
 
-Backend:
+Nota:
 
-- `http://localhost:8000`
+- en Fedora el servicio de MySQL normalmente es `mysqld`, no `mysql`
 
-## 3. Correr frontend
+## Inicio rapido
+
+Este flujo esta pensado para Ubuntu. Si se copian los comandos en el mismo orden, el proyecto queda listo para correr en local.
+
+### 1. Instalar dependencias del sistema
 
 ```bash
-cd frontend
+sudo apt update
+sudo apt install -y ca-certificates curl git gnupg unzip software-properties-common
+
+sudo add-apt-repository ppa:ondrej/php -y
+sudo apt update
+sudo apt install -y php8.3 php8.3-cli php8.3-common php8.3-curl php8.3-mbstring php8.3-mysql php8.3-sqlite3 php8.3-xml php8.3-zip
+
+cd /tmp
+EXPECTED_CHECKSUM="$(php -r 'copy("https://composer.github.io/installer.sig", "php://stdout");')"
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+ACTUAL_CHECKSUM="$(php -r 'echo hash_file("sha384", "composer-setup.php");')"
+[ "$EXPECTED_CHECKSUM" = "$ACTUAL_CHECKSUM" ] || { echo 'ERROR: checksum invalido de Composer'; rm composer-setup.php; exit 1; }
+sudo php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+rm composer-setup.php
+
+curl -fsSL https://deb.nodesource.com/setup_20.x -o /tmp/nodesource_setup.sh
+sudo -E bash /tmp/nodesource_setup.sh
+sudo apt install -y nodejs
+rm /tmp/nodesource_setup.sh
+
+sudo apt install -y mysql-server
+sudo systemctl enable --now mysql
+```
+
+### 2. Clonar el repositorio
+
+```bash
+git clone --branch main --single-branch https://github.com/Gariix1/ejercicio_programacion.git "$HOME/ejercicio_programacion"
+cd "$HOME/ejercicio_programacion"
+git branch --show-current
+```
+
+La ultima linea debe mostrar `main`.
+
+### 3. Crear la base de datos e importar datos
+
+```bash
+cd "$HOME/ejercicio_programacion"
+sudo mysql <<'SQL'
+CREATE DATABASE IF NOT EXISTS empleados_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'empleados_user'@'localhost' IDENTIFIED BY 'empleados_pass';
+CREATE USER IF NOT EXISTS 'empleados_user'@'127.0.0.1' IDENTIFIED BY 'empleados_pass';
+GRANT ALL PRIVILEGES ON empleados_db.* TO 'empleados_user'@'localhost';
+GRANT ALL PRIVILEGES ON empleados_db.* TO 'empleados_user'@'127.0.0.1';
+FLUSH PRIVILEGES;
+SQL
+sudo mysql < database/schema.sql
+sudo mysql < database/seed.sql
+```
+
+### 4. Preparar el backend
+
+```bash
+cd "$HOME/ejercicio_programacion/backend"
+composer run setup
+sed -i 's/DB_DATABASE=your_database_name/DB_DATABASE=empleados_db/' .env
+sed -i 's/DB_USERNAME=your_database_user/DB_USERNAME=empleados_user/' .env
+sed -i 's/DB_PASSWORD=your_database_password/DB_PASSWORD=empleados_pass/' .env
+php artisan config:clear
+```
+
+### 5. Preparar el frontend
+
+```bash
+cd "$HOME/ejercicio_programacion/frontend"
 npm install
+```
+
+### 6. Levantar la aplicacion
+
+Terminal 1:
+
+```bash
+cd "$HOME/ejercicio_programacion/backend"
+composer run serve
+```
+
+Terminal 2:
+
+```bash
+cd "$HOME/ejercicio_programacion/frontend"
 npm start
 ```
 
-Frontend:
+Abrir en el navegador:
 
 - `http://localhost:4200`
 
-## 4. Verificacion rapida
+Chequeo rapido:
+
+- `curl http://localhost:8000/api/health`
+
+## Detalle de instalacion
+
+### Dependencias del sistema
+
+- PHP 8.3+ es obligatorio para Laravel 13
+- `php8.3-mysql` permite conectar el backend con MySQL
+- `php8.3-sqlite3` permite ejecutar las pruebas del backend
+- Composer se instala de forma global como `composer`
+- Node.js 20 instala tambien `npm`
+- no hace falta instalar Laravel ni Angular de forma global
+- el instalador de NodeSource usado aqui soporta Ubuntu en arquitecturas `amd64` y `arm64`
+
+### Base de datos
+
+Credenciales usadas en desarrollo:
+
+- base de datos: `empleados_db`
+- usuario: `empleados_user`
+- clave: `empleados_pass`
+
+Si `sudo mysql` no abre la consola de MySQL en tu equipo, usa esta variante:
+
+```bash
+mysql -u root -p <<'SQL'
+CREATE DATABASE IF NOT EXISTS empleados_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'empleados_user'@'localhost' IDENTIFIED BY 'empleados_pass';
+CREATE USER IF NOT EXISTS 'empleados_user'@'127.0.0.1' IDENTIFIED BY 'empleados_pass';
+GRANT ALL PRIVILEGES ON empleados_db.* TO 'empleados_user'@'localhost';
+GRANT ALL PRIVILEGES ON empleados_db.* TO 'empleados_user'@'127.0.0.1';
+FLUSH PRIVILEGES;
+SQL
+```
+
+Si necesitas importar con contraseña de `root`, usa esta variante:
+
+```bash
+cd "$HOME/ejercicio_programacion"
+mysql -u root -p < database/schema.sql
+mysql -u root -p < database/seed.sql
+```
+
+### Backend
+
+- `composer run setup` instala dependencias, crea `.env` si no existe, genera la clave de Laravel y prepara directorios locales
+- las tres lineas con `sed` se pueden copiar tal cual porque reemplazan los valores por defecto de `backend/.env.example`
+- despues del ajuste del `.env`, `php artisan config:clear` limpia configuraciones cacheadas
+
+### Frontend
+
+- `npm install` instala Angular 18 y el resto de dependencias del cliente
+- no hay que configurar manualmente la URL de la API para desarrollo local
+- si abres el frontend en tu misma maquina, la API quedara en `http://localhost:8000/api`
+- si abres el frontend desde otro equipo en la red local, la API quedara en `http://IP-DEL-SERVIDOR:8000/api`
+
+### Notas utiles
+
+- el flujo asume que el repositorio se clono en `"$HOME/ejercicio_programacion"`
+- si esa carpeta ya existe, elimina la carpeta o usa otra ruta en el `git clone`
+
+## Verificacion rapida
 
 Frontend:
 
 ```bash
-cd frontend
+cd "$HOME/ejercicio_programacion/frontend"
 npm run build
 ```
 
 Backend:
 
 ```bash
-cd backend
-./vendor/bin/phpunit tests/Feature/EmployeesApiTest.php tests/Feature/ReportsApiTest.php
+cd "$HOME/ejercicio_programacion/backend"
+php artisan test
 ```
 
-## 5. Probar en otro dispositivo de la red
+## Ejecucion en red local
 
 Backend:
 
 ```bash
-cd backend
+cd "$HOME/ejercicio_programacion/backend"
 composer run serve:lan
 ```
 
 Frontend:
 
 ```bash
-cd frontend
+cd "$HOME/ejercicio_programacion/frontend"
 npm run start:lan
 ```
 
 Abrir desde otro dispositivo:
 
-- `http://<tu-ip-local>:4200`
+- `http://<ip-local>:4200`
 
-## 6. Archivos locales que no deben subirse
+Notas:
+
+- reemplaza `<ip-local>` por la IP local real de la maquina donde ejecutas el frontend
+- el frontend consume la API usando el mismo host desde el que se abre la aplicacion
+- el backend acepta origenes privados comunes para pruebas locales
+- las URLs de fotografia se generan con el host real de la peticion
+
+## Archivos locales que no deben subirse
 
 - `backend/storage/uploads`
 - `backend/storage/logs`
@@ -97,7 +259,7 @@ Abrir desde otro dispositivo:
 - `backend/vendor`
 - archivos `.env`
 
-## 7. Documento tecnico
+## Documento tecnico
 
 La descripcion de herramientas, arquitectura y ubicacion de la logica esta en:
 
